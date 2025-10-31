@@ -1,0 +1,518 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+**PipetGo MVP** is a B2B marketplace connecting clients with laboratory testing services. This Stage 1 MVP demonstrates the core workflow: Client submits test request → Lab acknowledges & uploads results → Admin oversees transactions.
+
+**Current Status**: Stage 1 MVP - Functional demo with mock file uploads and authentication
+
+## Key Commands
+
+### Development
+```bash
+npm install          # Install dependencies
+npm run dev         # Start dev server at http://localhost:3000
+npm run build       # Production build
+npm start           # Start production server
+npm run lint        # Run ESLint
+```
+
+### Database Operations
+```bash
+npm run db:push     # Push schema changes to database (dev mode)
+npm run db:migrate  # Create and apply migration (production mode)
+npm run db:seed     # Seed database with demo data
+npm run db:studio   # Open Prisma Studio GUI
+npm run db:reset    # Reset database and reseed (WARNING: destroys data)
+```
+
+## Architecture Overview
+
+### Tech Stack
+- **Frontend**: Next.js 14 (App Router), React 18, TypeScript (strict mode)
+- **Backend**: Next.js API Routes
+- **Database**: PostgreSQL (Neon serverless recommended)
+- **ORM**: Prisma 5.15
+- **Authentication**: NextAuth.js v4 with Prisma adapter
+- **UI**: Tailwind CSS 3.4 + custom components (shadcn/ui patterns)
+- **Form Validation**: React Hook Form + Zod schemas
+
+### Critical Directory Structure
+```
+src/
+├── app/
+│   ├── api/                      # Server-side API routes
+│   │   ├── auth/[...nextauth]/  # NextAuth handler
+│   │   ├── orders/              # Order CRUD operations
+│   │   ├── services/            # Lab services endpoints
+│   │   ├── labs/                # Lab management
+│   │   └── users/               # User management
+│   ├── auth/                    # Auth pages (signin, signup, error)
+│   ├── dashboard/               # Role-based dashboards
+│   │   ├── client/              # Client order tracking
+│   │   ├── lab/                 # Lab order management
+│   │   └── admin/               # Platform overview
+│   ├── order/                   # Order submission flow
+│   ├── marketing/               # Public marketing pages
+│   ├── layout.tsx               # Root layout with providers
+│   └── page.tsx                 # Homepage (service catalog)
+│
+├── components/
+│   ├── features/                # Feature-specific components
+│   │   ├── auth/                # Login, signup forms
+│   │   ├── dashboard/           # Dashboard widgets
+│   │   ├── labs/                # Lab profile components
+│   │   ├── orders/              # Order cards, status badges
+│   │   └── services/            # Service listings
+│   ├── ui/                      # Base UI primitives (Button, Card, etc.)
+│   └── auth-provider.tsx        # NextAuth SessionProvider wrapper
+│
+├── lib/
+│   ├── auth.ts                  # NextAuth configuration
+│   ├── db.ts                    # Prisma client singleton
+│   ├── utils.ts                 # Utility functions (cn, formatters)
+│   ├── hooks/                   # Custom React hooks
+│   └── validations/             # Zod schemas for forms/API
+│
+└── types/
+    └── index.ts                 # Shared TypeScript types
+
+prisma/
+├── schema.prisma                # Database schema (single source of truth)
+├── seed.ts                      # Demo data seeding script
+├── seeds/                       # Seed data modules
+└── migrations/                  # Migration history (if using migrate)
+```
+
+### Database Schema (Core Models)
+
+**User** (extends NextAuth tables)
+- Primary Key: `id` (cuid)
+- Fields: `name`, `email` (unique), `role` ('CLIENT' | 'LAB_ADMIN' | 'ADMIN')
+- Relations: `ownedLabs`, `clientOrders`, `attachments`
+- **Important**: Role determines dashboard access and permissions
+
+**Lab**
+- Primary Key: `id` (cuid)
+- Foreign Key: `ownerId` → User (LAB_ADMIN only)
+- Fields: `name`, `description`, `location` (JSON), `certifications` (String[])
+- Relations: `services`, `orders`
+
+**LabService**
+- Primary Key: `id` (cuid)
+- Foreign Key: `labId` → Lab
+- Fields: `name`, `description`, `category`, `pricePerUnit` (Decimal), `unitType`, `turnaroundDays`, `active` (Boolean)
+- Relations: `orders`
+- **Business Logic**: Only active services shown on marketplace
+
+**Order**
+- Primary Key: `id` (cuid)
+- Foreign Keys: `clientId` → User, `labId` → Lab, `serviceId` → LabService
+- Fields: `status` (enum), `clientDetails` (JSON snapshot), `sampleDescription`, `specialInstructions`, `quotedPrice`
+- Timestamps: `createdAt`, `acknowledgedAt`, `completedAt`
+- Relations: `attachments`
+- **Status Flow**: PENDING → ACKNOWLEDGED → IN_PROGRESS → COMPLETED (or CANCELLED)
+
+**Attachment**
+- Primary Key: `id` (cuid)
+- Foreign Keys: `orderId` → Order, `uploadedById` → User
+- Fields: `fileName`, `fileUrl` (mock in Stage 1), `fileType`, `fileSize`, `attachmentType` ('specification' | 'result' | 'certificate')
+- **Stage 1 Note**: fileUrl is mock data, no real upload/storage
+
+**NextAuth Models** (Account, Session, VerificationToken)
+- Managed by Prisma adapter - do not modify schema structure
+
+### Authentication Flow
+
+1. **NextAuth.js Configuration** (`lib/auth.ts`):
+   - Uses Prisma adapter for database sessions
+   - CredentialsProvider for email-only login (MVP simplification)
+   - JWT strategy for sessions
+   - Custom callbacks inject `role` into session token
+
+2. **Session Management**:
+   - Client components use `useSession()` from next-auth/react
+   - Server components use `getServerSession(authOptions)`
+   - Session includes: `user.id`, `user.email`, `user.name`, `user.role`
+
+3. **Authorization Pattern**:
+   ```typescript
+   // Client-side (components)
+   const { data: session, status } = useSession()
+   if (status === 'loading') return <Loading />
+   if (!session) redirect('/auth/signin')
+   if (session.user.role !== 'LAB_ADMIN') return <Unauthorized />
+
+   // Server-side (API routes)
+   const session = await getServerSession(authOptions)
+   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+   ```
+
+4. **Protected Routes**:
+   - `/dashboard/*` requires authentication
+   - `/order/new` requires CLIENT or LAB_ADMIN role
+   - `/api/orders` POST requires authentication
+   - Public routes: homepage, service catalog, marketing pages
+
+### Order Workflow
+
+#### Client Perspective
+1. Browse services on homepage (public, no auth required)
+2. Click "Request Test" → redirected to `/auth/signin` if not logged in
+3. Submit order form at `/order/new`:
+   - Select service
+   - Describe sample
+   - Provide contact details (captured as JSON snapshot)
+4. Order created with status PENDING
+5. View order in client dashboard at `/dashboard/client`
+6. Receive notification when lab updates status
+7. Download results when status = COMPLETED
+
+#### Lab Admin Perspective
+1. Sign in with LAB_ADMIN role
+2. View incoming orders at `/dashboard/lab`
+3. Update order status progression:
+   - PENDING → ACKNOWLEDGED (lab confirms receipt)
+   - ACKNOWLEDGED → IN_PROGRESS (testing started)
+   - IN_PROGRESS → COMPLETED (results uploaded)
+4. Upload mock result files (Stage 1: generates mock URL)
+5. Add internal notes (not visible to client)
+
+#### Platform Admin Perspective
+1. Sign in with ADMIN role
+2. View all platform activity at `/dashboard/admin`
+3. Monitor: total orders, revenue (mock), lab performance
+4. Intervene in disputes (mark CANCELLED with notes)
+
+### API Patterns
+
+**Standard Response Format**:
+```typescript
+// Success
+return NextResponse.json({ data: result }, { status: 200 })
+
+// Error
+return NextResponse.json({ error: 'Message' }, { status: 400 })
+
+// Created
+return NextResponse.json({ data: newOrder }, { status: 201 })
+```
+
+**Authentication Check** (reusable pattern):
+```typescript
+const session = await getServerSession(authOptions)
+if (!session) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+}
+```
+
+**Prisma Query Patterns**:
+```typescript
+// Fetch with relations
+const orders = await prisma.order.findMany({
+  where: { clientId: session.user.id },
+  include: {
+    service: { include: { lab: true } },
+    attachments: true
+  },
+  orderBy: { createdAt: 'desc' }
+})
+
+// Create with relations
+const order = await prisma.order.create({
+  data: {
+    clientId: session.user.id,
+    serviceId: body.serviceId,
+    labId: service.labId,
+    status: 'PENDING',
+    clientDetails: JSON.parse(body.clientDetails),
+    sampleDescription: body.sampleDescription
+  },
+  include: { service: true, lab: true }
+})
+
+// Update status with timestamp
+await prisma.order.update({
+  where: { id: orderId },
+  data: {
+    status: 'COMPLETED',
+    completedAt: new Date()
+  }
+})
+```
+
+### Important Files to Read First
+
+**Schema & Data**:
+- `prisma/schema.prisma` - Database schema (single source of truth)
+- `prisma/seed.ts` - Demo data with 3 users, 2 labs, services, orders
+
+**Auth & Core**:
+- `src/lib/auth.ts` - NextAuth configuration
+- `src/lib/db.ts` - Prisma client singleton
+- `src/app/api/auth/[...nextauth]/route.ts` - NextAuth API handler
+
+**Key API Routes**:
+- `src/app/api/orders/route.ts` - GET (list), POST (create)
+- `src/app/api/orders/[id]/route.ts` - PATCH (update status)
+- `src/app/api/services/route.ts` - GET (with filtering)
+
+**Dashboard Pages**:
+- `src/app/dashboard/client/page.tsx` - Client order tracking
+- `src/app/dashboard/lab/page.tsx` - Lab order management
+- `src/app/dashboard/admin/page.tsx` - Platform overview
+
+### Critical Patterns & Conventions
+
+#### Prisma Client Usage
+```typescript
+// Always import from singleton
+import { prisma } from '@/lib/db'
+
+// Never create new PrismaClient() in components/routes
+// Singleton prevents connection pool exhaustion
+```
+
+#### Path Aliases
+```typescript
+import { authOptions } from '@/lib/auth'
+import { Button } from '@/components/ui/button'
+import { OrderCard } from '@/components/features/orders/order-card'
+```
+
+#### Form Validation
+```typescript
+// 1. Define Zod schema in lib/validations/
+export const orderSchema = z.object({
+  serviceId: z.string().cuid(),
+  sampleDescription: z.string().min(10),
+  // ...
+})
+
+// 2. Use with React Hook Form
+const form = useForm({
+  resolver: zodResolver(orderSchema),
+  defaultValues: { ... }
+})
+
+// 3. Validate in API route
+const body = await request.json()
+const validation = orderSchema.safeParse(body)
+if (!validation.success) {
+  return NextResponse.json({ error: validation.error }, { status: 400 })
+}
+```
+
+#### Role-Based Rendering
+```typescript
+const { data: session } = useSession()
+
+// Client dashboard
+if (session?.user.role === 'CLIENT') {
+  return <ClientDashboard />
+}
+
+// Lab dashboard
+if (session?.user.role === 'LAB_ADMIN') {
+  return <LabDashboard />
+}
+
+// Admin dashboard
+if (session?.user.role === 'ADMIN') {
+  return <AdminDashboard />
+}
+```
+
+#### Mock File Upload Pattern (Stage 1)
+```typescript
+// In order submission
+const mockFileUrl = `https://mock-storage.example.com/results/${orderId}.pdf`
+
+await prisma.attachment.create({
+  data: {
+    orderId,
+    uploadedById: session.user.id,
+    fileName: 'test-results.pdf',
+    fileUrl: mockFileUrl,
+    fileType: 'application/pdf',
+    attachmentType: 'result'
+  }
+})
+
+// Stage 2: Replace with real S3/Supabase Storage integration
+```
+
+### Pitfalls & Guardrails
+
+1. **DO NOT modify NextAuth table schemas** - Prisma adapter expects exact structure
+2. **NEVER commit `.env.local`** - Contains DATABASE_URL and NEXTAUTH_SECRET
+3. **Always use `getServerSession` in API routes** - `useSession` is client-only
+4. **Don't bypass Prisma for raw SQL** - Loses type safety and migration tracking
+5. **Order status transitions must be sequential** - Don't skip steps (PENDING → COMPLETED is invalid)
+6. **JSON fields use proper typing** - Define TypeScript types for clientDetails and location JSON
+7. **Mock file URLs are temporary** - Stage 2 requires real storage before production
+8. **Email-only auth is MVP simplification** - Production needs password validation
+9. **No password field in User model** - NextAuth manages credentials separately in Account table
+10. **Session expiry is 30 days default** - Configure in authOptions if different needed
+
+### Environment Variables Required
+
+```env
+# Database
+DATABASE_URL="postgresql://user:password@host:port/database?sslmode=require"
+
+# NextAuth (generate with: openssl rand -base64 32)
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-here"
+
+# Optional (Stage 2)
+# AWS_S3_BUCKET=""
+# AWS_ACCESS_KEY_ID=""
+# AWS_SECRET_ACCESS_KEY=""
+# SENDGRID_API_KEY=""
+```
+
+### Demo Accounts (from seed data)
+
+| Role | Email | Purpose |
+|------|-------|---------|
+| CLIENT | `client@example.com` | Submit orders, view results |
+| LAB_ADMIN | `lab@testinglab.com` | Manage lab orders |
+| ADMIN | `admin@pipetgo.com` | Platform oversight |
+
+**Note**: MVP uses email-only login (no password validation)
+
+### Testing Approach
+
+**Manual Testing Flow**:
+1. Reset database: `npm run db:reset`
+2. Start dev server: `npm run dev`
+3. Test client flow: signin → submit order → check dashboard
+4. Test lab flow: signin as lab → acknowledge → complete order
+5. Test admin flow: signin as admin → view all orders
+
+**Database Inspection**:
+```bash
+npm run db:studio  # Opens Prisma Studio at http://localhost:5555
+```
+
+**API Testing** (with curl):
+```bash
+# Get services
+curl http://localhost:3000/api/services
+
+# Create order (requires auth token)
+curl -X POST http://localhost:3000/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{"serviceId":"...","sampleDescription":"..."}'
+```
+
+### Common Debugging Queries
+
+**Check order status flow**:
+```typescript
+const orders = await prisma.order.findMany({
+  where: { labId: 'lab-id-here' },
+  orderBy: { createdAt: 'desc' },
+  include: {
+    client: { select: { name: true, email: true } },
+    service: { select: { name: true } }
+  }
+})
+```
+
+**Find orphaned orders** (no lab or service):
+```typescript
+const orphans = await prisma.order.findMany({
+  where: {
+    OR: [
+      { lab: null },
+      { service: null }
+    ]
+  }
+})
+```
+
+**User role distribution**:
+```typescript
+const stats = await prisma.user.groupBy({
+  by: ['role'],
+  _count: true
+})
+```
+
+### Stage 1 Limitations (By Design)
+
+1. **No Real File Upload** - fileUrl is mock string, no S3/storage
+2. **No Email Notifications** - Status updates shown in dashboard only
+3. **No Payment Processing** - quotedPrice tracked but no Stripe integration
+4. **Email-only Auth** - Production needs password hashing and validation
+5. **No Real-time Updates** - Page refresh required for status changes
+6. **No Search Functionality** - Basic filtering only, no full-text search
+7. **No Mobile App** - Web-only interface
+8. **No Multi-language** - English only
+
+### Stage 2 Roadmap
+
+**Priority 1**:
+- Real file upload (S3 or Supabase Storage)
+- Email notifications (SendGrid or Resend)
+- Password-based authentication
+
+**Priority 2**:
+- Payment processing (Stripe)
+- Real-time updates (WebSockets or SSE)
+- Advanced search (Algolia or PostgreSQL FTS)
+
+**Priority 3**:
+- Mobile app (React Native or PWA)
+- Multi-language support (i18n)
+- Advanced analytics dashboard
+
+### When Making Changes
+
+1. **Schema Changes**:
+   - Edit `prisma/schema.prisma`
+   - Run `npm run db:push` (dev) or `npm run db:migrate` (prod)
+   - Update TypeScript types (auto-generated by Prisma)
+
+2. **New API Endpoint**:
+   - Create route in `src/app/api/[entity]/route.ts`
+   - Add authentication check
+   - Define Zod schema for validation
+   - Use Prisma for database operations
+   - Return standardized JSON response
+
+3. **New Dashboard Feature**:
+   - Create component in `src/components/features/[feature]/`
+   - Use `useSession` for role checks
+   - Fetch data with API routes or direct Prisma (server components)
+   - Follow existing dashboard layout patterns
+
+4. **UI Components**:
+   - Add primitive components in `src/components/ui/`
+   - Feature-specific components in `src/components/features/`
+   - Use Tailwind CSS utility classes
+   - Follow shadcn/ui patterns for consistency
+
+### Additional Context
+
+- **Mobile Responsive**: All UI components use Tailwind responsive breakpoints
+- **Type Safety**: Prisma generates TypeScript types automatically
+- **Error Handling**: Use try-catch in API routes, return 400/500 with error message
+- **Loading States**: Show spinners during async operations
+- **Accessibility**: Use semantic HTML and ARIA attributes where needed
+
+### Support & Documentation
+
+- **Technical Specs**: `docs/PipetGo Technical Deliverables.md`
+- **Cost Analysis**: `docs/PipetGo Cost Analysis.md`
+- **README**: Main setup and usage guide
+
+---
+
+**Last Updated**: 2025-09-30
+**Version**: Stage 1 MVP
+**Status**: Functional demo with mock integrations

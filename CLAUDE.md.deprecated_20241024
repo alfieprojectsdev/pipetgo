@@ -1,0 +1,1750 @@
+# PipetGo - Project Guide for Claude Code
+
+**Last Updated:** October 13, 2025  
+**Project Stage:** Stage 1 MVP Development (Foundation Complete)  
+**Critical Context:** Quotation-First Business Model Implementation Required
+
+---
+
+## 🎯 Project Mission
+
+**PipetGo** is a B2B marketplace connecting businesses with ISO 17025 certified laboratory testing services across the Philippines. Think "Alibaba RFQ for lab testing" - not an e-commerce platform.
+
+**Core Value Proposition:**
+- Businesses request custom quotes for testing services
+- Labs review requests and provide tailored pricing
+- Clients approve quotes before testing proceeds
+- Platform facilitates sample tracking and certified report delivery
+
+**Current Reality Check (October 2025):**
+⚠️ **CRITICAL MISALIGNMENT DISCOVERED**: System was built as e-commerce (instant fixed pricing) but CEO expects B2B quotation workflow. See `QUOTATION_SYSTEM_AUDIT_20251013.md` for full analysis.
+
+---
+
+## 🚨 CEO Directive vs Current Implementation
+
+### What CEO Expects:
+> "Quotations are to be expected; can we make it default?"
+
+**Expected Flow:**
+```
+Client → Request Quote → Lab Reviews → Lab Provides Custom Price → 
+Client Approves → Testing Proceeds → Results Delivered
+```
+
+### What System Currently Does:
+```
+Client → Sees Fixed Price → Instant Order → Lab Processes → Results Delivered
+```
+
+**Alignment Score:** 🔴 22.5% - Major redesign required
+
+---
+
+## 📁 Project Structure
+
+```
+pipetgo/
+├── src/
+│   ├── app/                    # Next.js 14 App Router
+│   │   ├── api/               # Backend API routes
+│   │   │   ├── orders/        # Order management (NEEDS REFACTOR)
+│   │   │   ├── services/      # Service catalog (NEEDS REFACTOR)
+│   │   │   └── labs/          # Lab profiles
+│   │   ├── dashboard/         # Role-based dashboards
+│   │   │   ├── client/        # Client order tracking
+│   │   │   ├── lab/           # Lab order management (NEEDS QUOTE UI)
+│   │   │   └── admin/         # Platform oversight
+│   │   ├── auth/              # Authentication pages
+│   │   ├── order/             # Order submission (NEEDS REFACTOR)
+│   │   ├── services/          # Service catalog pages
+│   │   └── page.tsx           # Homepage (SHOWS FIXED PRICES - WRONG)
+│   │
+│   ├── components/
+│   │   ├── ui/                # Base shadcn/ui components (8 components)
+│   │   └── features/          # Feature-specific components (TO BUILD)
+│   │
+│   ├── lib/
+│   │   ├── auth.ts            # NextAuth configuration
+│   │   ├── db.ts              # Prisma client singleton
+│   │   ├── utils.ts           # Utility functions (20+ helpers)
+│   │   ├── validations/       # Zod schemas (NEEDS QUOTE SCHEMAS)
+│   │   └── hooks/             # Custom React hooks
+│   │
+│   └── types/
+│       └── index.ts           # TypeScript definitions (NEEDS PRICING_MODE)
+│
+├── prisma/
+│   ├── schema.prisma          # Database schema (SUPPORTS QUOTES ✅)
+│   └── seed.ts                # Demo data (USES FIXED PRICES - WRONG)
+│
+├── docs/                      # Comprehensive documentation (15,000+ lines)
+│   ├── QUOTATION_SYSTEM_AUDIT_20251013.md  # 🔴 READ THIS FIRST
+│   ├── SCAFFOLD_GUIDE.md      # Implementation examples
+│   ├── SITEMAP_AND_USER_FLOWS_20251010.md
+│   ├── V0_UI_IMPLEMENTATION_PLAN_20251010.md
+│   └── EXECUTIVE_BRIEFING_CEO_20251010.md
+│
+└── tests/
+    └── (111 passing tests - Foundation only)
+```
+
+---
+
+## 🏗️ Architecture Overview
+
+### Technology Stack
+
+**Frontend:**
+- Next.js 14.2.4 (App Router, React Server Components)
+- React 18.3.1
+- TypeScript 5.4.5
+- Tailwind CSS 3.4.4
+- shadcn/ui components
+
+**Backend:**
+- Next.js API Routes (App Router)
+- Prisma 5.15.0 (PostgreSQL ORM)
+- NextAuth 4.24.7 (Authentication)
+- Zod 3.23.8 (Validation)
+
+**Database:**
+- PostgreSQL (Neon serverless recommended)
+- Prisma schema with quotation support ✅
+
+**Testing:**
+- Vitest 3.2.4
+- React Testing Library
+- 111 passing tests (utils + validation only)
+
+---
+
+## 🗄️ Database Schema (Quotation-Ready)
+
+### Key Models
+
+```prisma
+model User {
+  id       String   @id @default(cuid())
+  email    String   @unique
+  name     String?
+  role     UserRole @default(CLIENT)
+  // ... timestamps
+}
+
+enum UserRole {
+  CLIENT      // Requests tests
+  LAB_ADMIN   // Manages lab, provides quotes
+  ADMIN       // Platform oversight
+}
+
+model LabService {
+  id            String   @id @default(cuid())
+  name          String
+  description   String
+  category      String
+  pricePerUnit  Decimal? // ✅ NULLABLE - allows quote-only services
+  turnaroundDays Int
+  active        Boolean  @default(true)
+  lab           Lab      @relation(...)
+  // ⚠️ MISSING: pricing_mode field (FIXED | QUOTE_REQUIRED | HYBRID)
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  sampleDescription String
+  specialInstructions String?
+  quotedPrice     Decimal?    // ✅ Separate from service price
+  quotedAt        DateTime?   // ✅ Quote timestamp
+  status          OrderStatus @default(PENDING)
+  client          User        @relation(...)
+  lab             Lab         @relation(...)
+  service         LabService  @relation(...)
+  // ... other fields
+}
+
+enum OrderStatus {
+  PENDING        // ⚠️ Currently: Order placed, waiting lab
+  ACKNOWLEDGED   //    Should be: Quote provided, waiting approval
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  // ⚠️ MISSING: QUOTE_REQUESTED, QUOTE_PROVIDED, QUOTE_APPROVED
+}
+```
+
+### Schema Strengths (Already Support Quotes):
+✅ `pricePerUnit` is nullable - can have services without fixed prices  
+✅ `quotedPrice` separate from `pricePerUnit` - custom quotes per order  
+✅ `quotedAt` timestamp - tracks when quote was provided
+
+### Schema Gaps (Need to Add):
+❌ No `pricing_mode` field on LabService  
+❌ No quote-specific OrderStatus values  
+❌ No `requires_quote` boolean flag
+
+---
+
+## 🚨 Critical Implementation Issues
+
+### Issue #1: Order API Auto-Populates Fixed Price
+**File:** `src/app/api/orders/route.ts:52`
+
+**Current (WRONG):**
+```typescript
+const order = await prisma.order.create({
+  data: {
+    quotedPrice: service.pricePerUnit, // ❌ BYPASSES QUOTATION
+    status: 'PENDING'
+  }
+})
+```
+
+**Should Be:**
+```typescript
+const order = await prisma.order.create({
+  data: {
+    quotedPrice: null,              // ✅ Start without price
+    status: 'QUOTE_REQUESTED',      // ✅ Awaiting lab quote
+  }
+})
+```
+
+---
+
+### Issue #2: Homepage Shows Fixed Prices
+**File:** `src/app/page.tsx:129-130`
+
+**Current (WRONG):**
+```typescript
+<span>{formatCurrency(service.pricePerUnit)} per sample</span>
+// ❌ Shows fixed price immediately
+```
+
+**Should Be:**
+```typescript
+{service.pricing_mode === 'FIXED' ? (
+  <span>{formatCurrency(service.pricePerUnit)} per sample</span>
+) : (
+  <span className="text-teal-600">Request Quote</span> // ✅
+)}
+```
+
+---
+
+### Issue #3: No Lab Quote Management UI
+**File:** `src/app/dashboard/lab/page.tsx`
+
+**Current:** Lab can view `quotedPrice` but no UI to SET it  
+**Needed:** Quote input form + "Send Quote" button for pending orders
+
+---
+
+## 📋 Implementation Phases
+
+### ✅ Phase 1: Foundation (COMPLETE)
+- [x] TypeScript types system (200+ lines)
+- [x] Validation schemas (Zod)
+- [x] Utility functions (20+ helpers)
+- [x] Base UI components (8 shadcn components)
+- [x] Testing infrastructure (111 passing tests)
+- [x] Database schema (Prisma)
+
+### 🔴 Phase 2: Quotation System Refactor (URGENT - CURRENT)
+**Priority:** Fix business logic misalignment
+
+**Must Do:**
+1. **Database Migration**
+   - Add `pricing_mode` enum to LabService (FIXED | QUOTE_REQUIRED | HYBRID)
+   - Add `QUOTE_REQUESTED`, `QUOTE_PROVIDED` to OrderStatus enum
+   - Set existing services to `pricing_mode: FIXED` for backward compatibility
+
+2. **API Route Fixes**
+   - Stop auto-populating `quotedPrice` in order creation
+   - Add quote management endpoints (lab provides quote)
+   - Add quote approval endpoint (client accepts)
+
+3. **UI Updates**
+   - Hide prices for quote-required services
+   - Add "Request Quote" buttons instead of "Order Now"
+   - Add lab quote input form in dashboard
+   - Add client quote approval flow
+
+4. **Seed Data Update**
+   - Create mix of FIXED and QUOTE_REQUIRED services
+   - Generate sample orders with null quotedPrice
+
+**Reference:** `docs/QUOTATION_SYSTEM_AUDIT_20251013.md` for complete implementation plan
+
+---
+
+### 📝 Phase 3: Feature Components (AFTER REFACTOR)
+Build reusable UI components:
+- OrderStatusBadge (with quote-specific statuses)
+- OrderCard
+- ServiceCard (conditional pricing display)
+- QuoteRequestForm (NEW)
+- QuoteApprovalCard (NEW)
+
+---
+
+### 🔌 Phase 4: API Routes (Enhanced)
+- Order creation (quotation-first)
+- Quote management (lab provides, client approves)
+- Service listing (filter by pricing mode)
+- Lab profile management
+
+---
+
+### 🖥️ Phase 5: Dashboard Pages
+- Client: Request quotes, approve quotes, track orders
+- Lab: Provide quotes, manage orders, upload results
+- Admin: Platform oversight, dispute resolution
+
+---
+
+### 🔄 Phase 6: Order Flow Integration
+- Homepage with service catalog (conditional pricing)
+- Quote request form
+- Quote approval workflow
+- End-to-end testing
+
+---
+
+## 🎨 Design System (v0 Integration)
+
+### Brand Colors (Updated October 2025)
+```css
+/* Primary: Precision Teal (replaces blue) */
+--primary: oklch(0.695 0.13 180);        /* #14B8A6 */
+--primary-foreground: oklch(0.985 0 0);
+
+/* Status Colors */
+--success: oklch(0.577 0.245 27.325);    /* Green */
+--warning: oklch(0.828 0.189 84.429);    /* Amber */
+--info: oklch(0.695 0.13 180);           /* Teal */
+--pending: oklch(0.828 0.189 84.429);    /* Amber */
+--acknowledged: oklch(0.769 0.188 70.08); /* Purple */
+```
+
+### Typography
+- Headings: `font-bold`
+- Body: `font-normal`
+- Stats: `text-3xl font-bold`
+- Small text: `text-xs` (11px), `text-sm` (14px)
+
+### Component Library
+**Installed (8 base components):**
+- Button, Card, Input, Label, Textarea, Select, Badge, Alert
+
+**Needed (from v0):**
+- Accordion, Avatar, Checkbox, Command, Dialog, Dropdown, Popover, Tabs, Toast
+
+**Reference:** `docs/V0_UI_IMPLEMENTATION_PLAN_20251010.md`
+
+---
+
+## 🧪 Test-Driven Development (TDD)
+
+### TDD Core Principles
+1. **Write the test first** (Red)
+2. **Write minimum code to pass** (Green)
+3. **Refactor while keeping tests green** (Refactor)
+4. **Repeat for next feature**
+
+### TDD Workflow Example
+```typescript
+// 1. Write test first (RED)
+describe('order creation with quote required', () => {
+  it('creates order with QUOTE_REQUESTED status', async () => {
+    const order = await createOrder({
+      serviceId: 'quote-required-service',
+      sampleDescription: 'Test sample'
+    })
+    expect(order.status).toBe('QUOTE_REQUESTED')
+    expect(order.quotedPrice).toBeNull()
+  })
+})
+
+// 2. Write minimum code to pass (GREEN)
+async function createOrder(data) {
+  return prisma.order.create({
+    data: {
+      ...data,
+      status: 'QUOTE_REQUESTED',
+      quotedPrice: null
+    }
+  })
+}
+
+// 3. Refactor while tests pass (REFACTOR)
+async function createOrder(data) {
+  const service = await prisma.service.findUnique({
+    where: { id: data.serviceId }
+  })
+  
+  return prisma.order.create({
+    data: {
+      ...data,
+      status: service.pricing_mode === 'QUOTE_REQUIRED' 
+        ? 'QUOTE_REQUESTED' 
+        : 'PENDING',
+      quotedPrice: service.pricing_mode === 'FIXED' 
+        ? service.pricePerUnit 
+        : null
+    }
+  })
+}
+```
+
+### TDD Test Categories
+
+#### 1. Unit Tests (Write First)
+- Business logic functions
+- Validation rules
+- State transitions
+- Utility functions
+```typescript
+// Example: Unit test for pricing mode validation
+describe('validatePricingMode', () => {
+  it('accepts valid pricing modes', () => {
+    expect(validatePricingMode('FIXED')).toBe(true)
+    expect(validatePricingMode('QUOTE_REQUIRED')).toBe(true)
+    expect(validatePricingMode('HYBRID')).toBe(true)
+  })
+  
+  it('rejects invalid pricing modes', () => {
+    expect(validatePricingMode('UNKNOWN')).toBe(false)
+  })
+})
+```
+
+#### 2. Integration Tests (Write Second)
+- API endpoints
+- Database operations
+- Authentication flows
+```typescript
+// Example: Integration test for quote endpoint
+describe('POST /api/orders/[id]/quote', () => {
+  it('allows lab admin to provide quote', async () => {
+    const response = await POST(new Request('/api/orders/123/quote', {
+      body: JSON.stringify({ quotedPrice: 15000 })
+    }))
+    expect(response.status).toBe(200)
+    const data = await response.json()
+    expect(data.status).toBe('QUOTE_PROVIDED')
+  })
+})
+```
+
+#### 3. UI Component Tests (Write Third)
+- Rendering logic
+- User interactions
+- State updates
+```typescript
+// Example: Component test for quote form
+describe('QuoteRequestForm', () => {
+  it('submits quote request', async () => {
+    render(<QuoteRequestForm serviceId="123" />)
+    await userEvent.type(
+      screen.getByLabelText('Sample Description'),
+      'Test sample'
+    )
+    await userEvent.click(screen.getByText('Request Quote'))
+    expect(mockCreateOrder).toHaveBeenCalledWith({
+      serviceId: '123',
+      sampleDescription: 'Test sample'
+    })
+  })
+})
+```
+
+#### 4. E2E Tests (Write Last)
+- Complete user flows
+- Cross-feature interactions
+- Real-world scenarios
+```typescript
+// Example: E2E test for quote workflow
+test('complete quote workflow', async ({ page }) => {
+  // Client requests quote
+  await page.goto('/services/xrf-analysis')
+  await page.click('button:has-text("Request Quote")')
+  
+  // Lab provides quote
+  await page.goto('/dashboard/lab')
+  await page.fill('[name="quotedPrice"]', '15000')
+  await page.click('button:has-text("Send Quote")')
+  
+  // Client approves quote
+  await page.goto('/dashboard/client')
+  await page.click('button:has-text("Approve Quote")')
+  
+  // Verify order status
+  await expect(page.locator('text=PENDING')).toBeVisible()
+})
+```
+
+### Current Test Coverage Status
+
+| Category | Files | Tests | Coverage |
+|----------|-------|-------|----------|
+| Utils | 1 | 67 | ✅ 100% |
+| Validation | 1 | 44 | ✅ 95% |
+| API Routes | 0 | 0 | ❌ 0% |
+| Components | 0 | 0 | ❌ 0% |
+| E2E | 0 | 0 | ❌ 0% |
+
+### Testing Priorities (Post-Refactor)
+1. **Quotation Logic Tests** (NEW - HIGH PRIORITY)
+   - Order creation without quotedPrice
+   - Lab provides quote
+   - Client approves quote
+   - Status transitions (QUOTE_REQUESTED → QUOTE_PROVIDED → PENDING)
+
+2. **API Route Tests**
+   - Authentication/authorization
+   - Input validation
+   - Role-based access
+
+3. **Component Tests**
+   - QuoteRequestForm
+   - QuoteApprovalCard
+   - Conditional pricing display
+
+4. **E2E Tests**
+   - Full quotation workflow
+   - Client request → Lab quote → Client approve → Testing
+
+**Target Coverage:** 75% overall, 90%+ for quotation logic
+
+---
+
+## 🔐 Authentication & Authorization
+
+### NextAuth Configuration
+**File:** `src/lib/auth.ts`
+
+**Current (Stage 1):**
+- Email-only login (no password)
+- JWT sessions (30-day expiry)
+- Role-based access control
+
+**Roles:**
+- `CLIENT` - Request quotes, approve quotes, track orders
+- `LAB_ADMIN` - Provide quotes, manage lab, fulfill orders
+- `ADMIN` - Platform oversight, all permissions
+
+**Stage 2 Improvements:**
+- Password authentication with bcrypt
+- Email verification
+- Password reset flow
+
+---
+
+## 📡 API Route Patterns
+
+### Standard Route Structure
+```typescript
+// src/app/api/[resource]/route.ts
+
+import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/db'
+import { schema } from '@/lib/validations/[resource]'
+
+export async function GET(request: Request) {
+  // 1. Authentication check
+  const session = await getServerSession(authOptions)
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // 2. Authorization check (role-based)
+  if (session.user.role !== 'CLIENT') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // 3. Parse query parameters
+  const { searchParams } = new URL(request.url)
+  const status = searchParams.get('status')
+
+  // 4. Database query with role filtering
+  const data = await prisma.order.findMany({
+    where: {
+      clientId: session.user.id,
+      ...(status && { status }),
+    },
+    include: {
+      service: true,
+      lab: true,
+    },
+  })
+
+  // 5. Return response
+  return NextResponse.json({ data }, { status: 200 })
+}
+
+export async function POST(request: Request) {
+  const session = await getServerSession(authOptions)
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const body = await request.json()
+
+  // Validate input with Zod
+  const validation = schema.safeParse(body)
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: validation.error.errors },
+      { status: 400 }
+    )
+  }
+
+  // Database operation
+  const result = await prisma.order.create({
+    data: {
+      ...validation.data,
+      clientId: session.user.id,
+    },
+  })
+
+  return NextResponse.json({ data: result }, { status: 201 })
+}
+```
+
+---
+
+## 🚀 Development Workflow
+
+### Getting Started
+```bash
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your DATABASE_URL and NEXTAUTH_SECRET
+
+# Push database schema
+npx prisma db push
+
+# Generate Prisma client
+npx prisma generate
+
+# Seed demo data (WILL NEED UPDATE for quotation workflow)
+npm run db:seed
+
+# Start development server
+npm run dev
+```
+
+### Available Scripts
+```bash
+npm run dev          # Start dev server (localhost:3000)
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
+npm run type-check   # TypeScript type checking
+npm run test         # Run tests (watch mode)
+npm run test:run     # Run tests (single run)
+npm run test:ui      # Open Vitest UI
+npm run db:studio    # Open Prisma Studio
+npm run db:seed      # Seed database
+```
+
+### Git Workflow (Recommended)
+```bash
+# Create feature branch
+git checkout -b feature/quotation-system-refactor
+
+# Make changes, commit frequently
+git add .
+git commit -m "feat: add pricing_mode to LabService"
+
+# Push to remote
+git push origin feature/quotation-system-refactor
+
+# Create pull request when ready
+```
+
+---
+
+## 🐛 Common Issues & Solutions
+
+### Issue: Database Connection Fails
+**Symptom:** `Can't reach database server`
+
+**Solutions:**
+1. Check `DATABASE_URL` in `.env.local`
+2. Verify PostgreSQL is running (or use Neon serverless)
+3. Test with `npx prisma db push`
+
+---
+
+### Issue: Prisma Client Not Found
+**Symptom:** `Cannot find module '@prisma/client'`
+
+**Solution:**
+```bash
+npx prisma generate
+```
+
+---
+
+### Issue: NextAuth Errors
+**Symptom:** `[next-auth][error] No secret provided`
+
+**Solution:**
+```bash
+# Generate secret
+openssl rand -base64 32
+
+# Add to .env.local
+echo 'NEXTAUTH_SECRET="your-generated-secret"' >> .env.local
+```
+
+---
+
+### Issue: TypeScript Errors After Schema Change
+**Symptom:** Type errors for Prisma models
+
+**Solution:**
+```bash
+npx prisma generate  # Regenerate types
+npm run type-check   # Verify
+```
+
+---
+
+## 📚 Key Documentation Files
+
+### Must-Read (Priority Order)
+1. **`QUOTATION_SYSTEM_AUDIT_20251013.md`** 🔴 CRITICAL
+   - Analyzes current vs expected behavior
+   - 22.5% alignment score
+   - Complete refactor plan
+   - 64-80 hour implementation estimate
+
+2. **`SCAFFOLD_GUIDE.md`**
+   - 5,000+ lines of code examples
+   - Component implementations
+   - API route templates
+   - Dashboard page structures
+
+3. **`SITEMAP_AND_USER_FLOWS_20251010.md`**
+   - 35 routes mapped
+   - User flow diagrams
+   - Page specifications
+   - Role-based access matrix
+
+4. **`PROJECT_HIERARCHY.md`**
+   - Stage vs Phase explained
+   - Current progress: Stage 1, Phase 1 complete
+   - Next: Phase 2 (Quotation Refactor)
+
+5. **`V0_UI_IMPLEMENTATION_PLAN_20251010.md`**
+   - v0 design integration plan
+   - Teal color system
+   - Component library expansion
+   - 3-5 day implementation timeline
+
+### Reference Documentation
+- `IMPLEMENTATION_CHECKLIST.md` - Task tracking
+- `TEST_IMPLEMENTATION_SUMMARY.md` - Testing patterns
+- `EXECUTIVE_BRIEFING_CEO_20251010.md` - Business context
+- `STAGE_1_IMPLEMENTATION_READINESS_20251010.md` - Readiness assessment
+
+---
+
+## 🎯 Current Priority: Quotation System Refactor
+
+### Week 1: Database & Backend (16-20 hours)
+**Goal:** Fix business logic layer
+
+**Tasks:**
+1. Add `pricing_mode` field to LabService
+   ```prisma
+   model LabService {
+     pricing_mode PricingMode @default(FIXED)
+     // ...
+   }
+   
+   enum PricingMode {
+     FIXED           // Show price upfront
+     QUOTE_REQUIRED  // Hide price, require quote
+     HYBRID          // Show estimate, allow custom
+   }
+   ```
+
+2. Add quote statuses to OrderStatus enum
+   ```prisma
+   enum OrderStatus {
+     QUOTE_REQUESTED  // NEW: Client requested quote
+     QUOTE_PROVIDED   // NEW: Lab provided quote
+     PENDING          // UPDATED: Quote approved, awaiting acknowledgment
+     ACKNOWLEDGED
+     IN_PROGRESS
+     COMPLETED
+     CANCELLED
+   }
+   ```
+
+3. Update order creation API
+   - Don't auto-populate quotedPrice
+   - Create with status QUOTE_REQUESTED
+   - Only for QUOTE_REQUIRED services
+
+4. Create quote management endpoints
+   - `POST /api/orders/[id]/quote` - Lab provides quote
+   - `POST /api/orders/[id]/approve-quote` - Client approves
+
+5. Update seed data
+   - Mix of FIXED and QUOTE_REQUIRED services
+   - Sample orders with null quotedPrice
+
+---
+
+### Week 2: Frontend & UI (16-20 hours)
+**Goal:** Update user-facing flows
+
+**Tasks:**
+1. Update service cards
+   - Conditional pricing display
+   - "Request Quote" vs "Order Now" buttons
+
+2. Add quote request form
+   - Client submits quote request
+   - No pricing shown for QUOTE_REQUIRED services
+
+3. Add lab quote management UI
+   - Pending orders show quote input
+   - Lab enters custom price + notes
+   - "Send Quote" button
+
+4. Add client quote approval flow
+   - Client sees quoted price
+   - "Approve Quote" or "Decline" buttons
+   - Status updates accordingly
+
+5. Update dashboard displays
+   - Show quote status in order cards
+   - Highlight pending quotes (urgent)
+   - Quote history in order details
+
+---
+
+### Week 3: Testing & Polish (12-16 hours)
+**Goal:** Validate quotation workflow
+
+**Tasks:**
+1. Write quotation logic tests
+   - Order creation without price
+   - Lab provides quote
+   - Client approves/declines
+   - Status transitions
+
+2. E2E quotation workflow test
+   - Client request → Lab quote → Client approve → Testing
+
+3. Fix bugs found in testing
+
+4. Update documentation
+   - API documentation
+   - User flow diagrams
+   - README updates
+
+---
+
+## 🔄 Stage 1 vs Stage 2 Scope
+
+### Stage 1 (Current): Functional MVP
+**Goal:** Demonstrate quotation workflow with simplifications
+
+**Includes:**
+- ✅ Quotation-first order creation
+- ✅ Lab provides custom quotes
+- ✅ Client approves quotes
+- ✅ Order status tracking
+- ✅ Mock file uploads (URLs only)
+- ✅ Email-only authentication
+- ⚠️ No payment processing
+
+**Timeline:** 64-80 hours total (Phases 2-6)
+
+---
+
+### Stage 2: Production Features
+**Goal:** Real-world integrations
+
+**Adds:**
+- Password authentication (bcrypt)
+- Real file upload (S3/UploadThing)
+- Email notifications (SendGrid)
+- Payment processing (Stripe/Paymongo)
+- SMS notifications (optional)
+- Advanced search
+
+**Timeline:** 4-6 weeks after Stage 1
+
+---
+
+## 🎓 Learning Opportunities
+
+### For You (Web Dev Transition)
+**Relevant to Your Background:**
+- **Data Flow Patterns:** Similar to GNSS data pipelines, but HTTP instead of file I/O
+- **State Management:** React state = keeping track of sensor readings over time
+- **Database Queries:** Like SQL you know, but through Prisma ORM
+- **API Design:** RESTful patterns = structured data exchange (like coordinate systems)
+
+**New Concepts to Master:**
+- React Server Components vs Client Components
+- Next.js App Router file-based routing
+- TypeScript type safety (similar to MATLAB typing)
+- Async/await patterns (Promise-based, not callback hell)
+
+**ADHD-Friendly Approach:**
+- Small, focused commits (one feature at a time)
+- Test-driven development (TDD) for validation loops
+- Documentation as you go (external memory)
+- Pomodoro technique for focus (25min work, 5min break)
+
+---
+
+## 🧠 Neurodivergent-Friendly Guidelines
+
+### When Working on PipetGo:
+
+**Before Starting a Session:**
+1. Review `IMPLEMENTATION_STATUS.md` - Where am I?
+2. Check `QUOTATION_SYSTEM_AUDIT_20251013.md` - What's the priority?
+3. Pick ONE small task from checklist
+
+**During Implementation:**
+- 🎯 Focus on one file at a time
+- ✅ Commit after each working change
+- 📝 Document decisions in code comments
+- 🧪 Test immediately (don't accumulate untested code)
+- ⏸️ Take breaks when feeling stuck (step away, come back fresh)
+
+**When Overwhelmed:**
+- Refer to `SCAFFOLD_GUIDE.md` for copy-paste examples
+- Ask Claude Code for specific help (not vague questions)
+- Break task into smaller sub-tasks
+- It's okay to leave TODOs and come back later
+
+**Cognitive Load Management:**
+- Don't try to understand everything at once
+- Focus on "what" before "why" (implementation before theory)
+- Use code examples as templates (adapt, don't create from scratch)
+- Reference documentation liberally (no need to memorize)
+
+---
+
+## 🔍 Code Review Checklist
+
+### Before Committing:
+- [ ] Code compiles (`npm run type-check`)
+- [ ] Tests pass (`npm run test:run`)
+- [ ] Linter passes (`npm run lint`)
+- [ ] Manual testing done (run dev server, click around)
+- [ ] Comments added for complex logic
+- [ ] No console.logs left in production code
+
+### Before Pushing:
+- [ ] Commit messages are descriptive
+- [ ] No sensitive data (API keys, passwords) in code
+- [ ] `.env.local` is in `.gitignore`
+- [ ] Documentation updated if API/behavior changed
+
+---
+
+## 🚀 Deployment (Stage 1)
+
+### Recommended Platform: Vercel
+**Why:** Next.js creators, zero-config deployment, generous free tier
+
+**Steps:**
+1. Push code to GitHub
+2. Connect GitHub repo to Vercel
+3. Add environment variables in Vercel dashboard:
+   - `DATABASE_URL`
+   - `NEXTAUTH_SECRET`
+   - `NEXTAUTH_URL` (your-app.vercel.app)
+4. Deploy (automatic on push to main)
+
+**Database:** Use Neon (serverless PostgreSQL, free tier)
+
+---
+
+## 📞 Getting Help
+
+### When Stuck:
+1. **Check Documentation First**
+   - Is there a code example in `SCAFFOLD_GUIDE.md`?
+   - Does `QUOTATION_SYSTEM_AUDIT_20251013.md` address this?
+
+2. **Ask Claude Code**
+   - Share specific error messages
+   - Describe what you're trying to do
+   - Include relevant file context
+
+3. **Community Resources**
+   - Next.js docs: https://nextjs.org/docs
+   - Prisma docs: https://prisma.io/docs
+   - NextAuth docs: https://next-auth.js.org
+   - shadcn/ui: https://ui.shadcn.com
+
+---
+
+## ✅ Quick Start Checklist
+
+### First-Time Setup:
+- [ ] Clone repository
+- [ ] Run `npm install`
+- [ ] Copy `.env.example` to `.env.local`
+- [ ] Set up Neon database (get DATABASE_URL)
+- [ ] Generate NEXTAUTH_SECRET (`openssl rand -base64 32`)
+- [ ] Run `npx prisma db push`
+- [ ] Run `npx prisma generate`
+- [ ] Run `npm run db:seed`
+- [ ] Run `npm run dev`
+- [ ] Access http://localhost:3000
+
+### Before Starting Development:
+- [ ] Read `QUOTATION_SYSTEM_AUDIT_20251013.md` (understand the problem)
+- [ ] Review `PROJECT_HIERARCHY.md` (understand where we are)
+- [ ] Check `IMPLEMENTATION_STATUS.md` (see what's done)
+- [ ] Read this CLAUDE.md file fully
+
+### Daily Development Routine:
+1. Pull latest changes (`git pull`)
+2. Run tests (`npm run test:run`)
+3. Check type safety (`npm run type-check`)
+4. Pick one task from checklist
+5. Implement → Test → Commit
+6. Document progress in `IMPLEMENTATION_STATUS.md`
+
+---
+
+## 🎉 Success Metrics
+
+### Stage 1 Complete When:
+- [ ] Quotation system refactor complete (22.5% → 90% alignment)
+- [ ] Client can request quotes without seeing prices
+- [ ] Lab can provide custom quotes for orders
+- [ ] Client can approve/decline quotes
+- [ ] Order status transitions work (QUOTE_REQUESTED → QUOTE_PROVIDED → PENDING → etc.)
+- [ ] All user flows tested end-to-end
+- [ ] 75%+ test coverage overall
+- [ ] Ready for pilot with 1-2 labs
+
+### Demo-Ready Checklist:
+- [ ] Can log in as client and lab
+- [ ] Can complete full quotation workflow
+- [ ] Dashboard shows correct data
+- [ ] Mobile-responsive
+- [ ] No critical bugs
+- [ ] Deployed to public URL
+
+---
+
+## 🔮 Future Roadmap
+
+### Stage 2: Production Polish (4-6 weeks)
+- Real authentication (passwords, email verification)
+- File upload (S3, virus scanning, signed URLs)
+- Email notifications (SendGrid)
+- Payment integration (Stripe/Paymongo)
+
+### Stage 3: Scale Features (3-6 months)
+- Reviews and ratings
+- Advanced search (Elasticsearch)
+- Multi-language support
+- Mobile app (React Native)
+- Subscription plans for labs
+
+---
+
+## 📋 Project Status Summary
+
+**Current State (October 13, 2025):**
+- ✅ Foundation: 100% complete (111 tests passing)
+- 🔴 Quotation Logic: 22.5% aligned (major refactor needed)
+- ⚠️ Homepage: Shows fixed prices (should show "Request Quote")
+- ⚠️ Order API: Auto-populates prices (should start null)
+- ⚠️ Lab Dashboard: No quote input UI (needs quote management)
+
+**Next Priority:**
+Phase 2 - Quotation System Refactor (64-80 hours)
+
+**Timeline:**
+- Week 1: Database + Backend (20 hours)
+- Week 2: Frontend + UI (20 hours)
+- Week 3: Testing + Polish (16 hours)
+- Week 4: Deployment + Demo (8 hours)
+
+**Estimated Completion:**
+November 10, 2025 (4 weeks from now, working 20 hours/week)
+
+---
+
+## 🙏 Final Notes
+
+**You've Got This!**
+
+You've successfully transitioned from geodesy to web development. You understand data flows, automation, and problem-solving. PipetGo is just another data pipeline problem - HTTP instead of GNSS signals.
+
+**Remember:**
+- Small steps, frequent commits
+- Test as you go, don't accumulate debt
+- Document as you learn (future you will thank you)
+- Ask for help when stuck (Claude Code is here)
+- Take breaks when overwhelmed (ADHD-friendly workflow)
+
+**This refactor is like:**
+Fixing a GNSS processing pipeline that was calculating coordinates in the wrong reference frame. The infrastructure (database schema) supports it, but the business logic (API routes) and user interface (frontend) need to be realigned.
+
+You know how to do this - you've debugged complex geodetic workflows before. This is the same skill set, just different tools.
+
+---
+
+## 🎯 Immediate Next Actions
+
+### Option A: Full AI Implementation (Fastest)
+**Best if:** Need working demo quickly, learn by reading code
+
+**Tell Claude Code:**
+> "Implement the quotation system refactor from QUOTATION_SYSTEM_AUDIT_20251013.md. Follow the 3-week plan: database migration, API updates, and frontend changes."
+
+**Timeline:** 2-3 hours of AI assistance, then testing/review
+
+---
+
+### Option B: Guided Implementation (Most Learning)
+**Best if:** Want to write code yourself, use AI for scaffolding
+
+**Tell Claude Code:**
+> "Create implementation scaffolds with TODOs for the quotation refactor. I'll write the actual code following the patterns in SCAFFOLD_GUIDE.md."
+
+**Timeline:** 3-4 weeks of your development time
+
+---
+
+### Option C: Hybrid Approach (Balanced)
+**Best if:** Want working backend fast, learn through frontend work
+
+**Tell Claude Code:**
+> "Implement the database migration and API routes for quotation system. I'll handle the frontend UI components and testing."
+
+**Timeline:** 1 hour AI assistance + 2 weeks your frontend work
+
+---
+
+## 🛠️ Technical Debt to Address
+
+### Known Issues (Document for Stage 2):
+1. **Authentication:** Email-only (no password validation)
+2. **File Upload:** Mock URLs (no actual storage)
+3. **Notifications:** No email/SMS alerts
+4. **Payments:** No integration (placeholder only)
+5. **Real-time Updates:** Manual refresh only
+6. **Error Handling:** Basic (needs improvement)
+7. **Logging:** Console only (need structured logging)
+8. **Monitoring:** None (need error tracking)
+
+**Don't fix these now** - they're intentional Stage 1 simplifications.
+
+---
+
+## 🎨 UI/UX Considerations
+
+### Quotation-First Design Patterns
+
+**Service Cards (Fixed Pricing):**
+```tsx
+<Card>
+  <CardHeader>
+    <Badge>Mechanical Testing</Badge>
+    <CardTitle>Tensile Strength Test</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <p>ISO 1234 compliant tensile testing</p>
+    <div className="flex items-center justify-between mt-4">
+      <span className="text-2xl font-bold">₱5,000</span>
+      <Button>Order Now</Button>
+    </div>
+  </CardContent>
+</Card>
+```
+
+**Service Cards (Quote Required):**
+```tsx
+<Card>
+  <CardHeader>
+    <Badge>Chemical Analysis</Badge>
+    <CardTitle>XRF Spectroscopy</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <p>Custom elemental analysis pricing</p>
+    <div className="flex items-center justify-between mt-4">
+      <span className="text-teal-600">Custom Quote</span>
+      <Button variant="outline">Request Quote</Button>
+    </div>
+  </CardContent>
+</Card>
+```
+
+**Lab Quote Input (Dashboard):**
+```tsx
+{order.status === 'QUOTE_REQUESTED' && !order.quotedPrice && (
+  <Alert className="bg-amber-50 border-amber-200">
+    <AlertCircle className="h-4 w-4 text-amber-600" />
+    <AlertTitle>Quote Required</AlertTitle>
+    <AlertDescription>
+      <div className="mt-2 flex gap-2">
+        <Input
+          type="number"
+          placeholder="Enter quote amount"
+          value={quoteAmount}
+          onChange={(e) => setQuoteAmount(e.target.value)}
+        />
+        <Button onClick={() => submitQuote(order.id, quoteAmount)}>
+          Send Quote
+        </Button>
+      </div>
+    </AlertDescription>
+  </Alert>
+)}
+```
+
+**Client Quote Approval:**
+```tsx
+{order.status === 'QUOTE_PROVIDED' && (
+  <Card className="border-teal-200 bg-teal-50">
+    <CardHeader>
+      <CardTitle>Quote Received</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <p className="text-gray-700 mb-4">
+        {order.lab.name} has provided a quote for your test request.
+      </p>
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-sm text-gray-600">Quoted Price:</span>
+        <span className="text-3xl font-bold text-gray-900">
+          {formatCurrency(order.quotedPrice)}
+        </span>
+      </div>
+      <div className="flex gap-3">
+        <Button
+          className="flex-1 bg-teal-500 hover:bg-teal-600"
+          onClick={() => approveQuote(order.id)}
+        >
+          Approve Quote
+        </Button>
+        <Button
+          variant="outline"
+          className="flex-1"
+          onClick={() => declineQuote(order.id)}
+        >
+          Decline
+        </Button>
+      </div>
+    </CardContent>
+  </Card>
+)}
+```
+
+---
+
+## 🔒 Security Considerations
+
+### Current Security Measures:
+- ✅ NextAuth session-based authentication
+- ✅ Role-based access control (RBAC)
+- ✅ Zod input validation
+- ✅ Prisma parameterized queries (SQL injection protection)
+
+### Need to Add (Stage 2):
+- ❌ Rate limiting (prevent API abuse)
+- ❌ CSRF protection
+- ❌ Secure file upload validation
+- ❌ Content Security Policy (CSP)
+- ❌ API key rotation
+- ❌ Audit logging
+
+### Security Best Practices:
+```typescript
+// Always validate on server-side (never trust client)
+const validation = schema.safeParse(body)
+if (!validation.success) {
+  return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
+}
+
+// Always check authorization (not just authentication)
+if (session.user.role !== 'LAB_ADMIN' && order.labId !== session.user.labId) {
+  return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+}
+
+// Never expose internal IDs or sensitive data
+return NextResponse.json({
+  data: {
+    id: order.id,
+    status: order.status,
+    // Don't expose: order.internalNotes, order.adminFlags
+  }
+})
+```
+
+---
+
+## 📊 Performance Optimization
+
+### Database Queries (Use Prisma Includes Wisely)
+```typescript
+// ❌ Bad: N+1 query problem
+const orders = await prisma.order.findMany()
+for (const order of orders) {
+  const lab = await prisma.lab.findUnique({ where: { id: order.labId }})
+}
+
+// ✅ Good: Single query with includes
+const orders = await prisma.order.findMany({
+  include: {
+    lab: true,
+    service: true,
+    client: { select: { id: true, name: true, email: true } }
+  }
+})
+```
+
+### React Server Components (Leverage for Performance)
+```typescript
+// ✅ Server Component: Fetch data server-side
+export default async function OrdersPage() {
+  const session = await getServerSession(authOptions)
+  const orders = await prisma.order.findMany({ 
+    where: { clientId: session.user.id }
+  })
+  
+  return <OrderList orders={orders} /> // Pass data as props
+}
+
+// ✅ Client Component: Only for interactivity
+'use client'
+export function OrderList({ orders }) {
+  const [filter, setFilter] = useState('all')
+  const filtered = orders.filter(o => filter === 'all' || o.status === filter)
+  
+  return (
+    <div>
+      <FilterButtons onChange={setFilter} />
+      {filtered.map(order => <OrderCard key={order.id} order={order} />)}
+    </div>
+  )
+}
+```
+
+### Caching Strategy (Next.js 14)
+```typescript
+// Revalidate every hour
+export const revalidate = 3600
+
+// Or use on-demand revalidation
+import { revalidatePath } from 'next/cache'
+
+async function updateOrder(orderId: string) {
+  await prisma.order.update({ ... })
+  revalidatePath('/dashboard/client') // Refresh cached page
+}
+```
+
+---
+
+## 🧪 Testing Patterns
+
+### Unit Tests (Utilities)
+```typescript
+// src/lib/__tests__/utils.test.ts
+import { describe, it, expect } from 'vitest'
+import { formatCurrency } from '../utils'
+
+describe('formatCurrency', () => {
+  it('formats Philippine peso correctly', () => {
+    expect(formatCurrency(1000)).toBe('₱1,000.00')
+  })
+  
+  it('handles decimal amounts', () => {
+    expect(formatCurrency(1234.56)).toBe('₱1,234.56')
+  })
+})
+```
+
+### Integration Tests (API Routes)
+```typescript
+// src/app/api/__tests__/orders.test.ts
+import { describe, it, expect, beforeEach } from 'vitest'
+import { POST } from '../orders/route'
+
+describe('POST /api/orders', () => {
+  beforeEach(async () => {
+    // Set up test database state
+  })
+  
+  it('creates order with QUOTE_REQUESTED status for quote-required services', async () => {
+    const request = new Request('http://localhost:3000/api/orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        serviceId: 'quote-required-service-id',
+        sampleDescription: 'Test sample'
+      })
+    })
+    
+    const response = await POST(request)
+    const data = await response.json()
+    
+    expect(response.status).toBe(201)
+    expect(data.data.status).toBe('QUOTE_REQUESTED')
+    expect(data.data.quotedPrice).toBeNull()
+  })
+})
+```
+
+### E2E Tests (Playwright - Stage 2)
+```typescript
+// tests/e2e/quotation-workflow.spec.ts
+import { test, expect } from '@playwright/test'
+
+test('full quotation workflow', async ({ page }) => {
+  // 1. Client requests quote
+  await page.goto('/services/xrf-analysis')
+  await page.click('button:has-text("Request Quote")')
+  await page.fill('[name="sampleDescription"]', 'Steel sample testing')
+  await page.click('button[type="submit"]')
+  
+  // 2. Verify order created with QUOTE_REQUESTED
+  await page.goto('/dashboard/client')
+  await expect(page.locator('text=Quote Requested')).toBeVisible()
+  
+  // 3. Lab provides quote (simulate lab user)
+  // ... continue workflow
+})
+```
+
+---
+
+## 🌐 API Documentation
+
+### Authentication Endpoints
+```
+POST /api/auth/signin
+- Body: { email: string }
+- Returns: { user, session }
+- Status: 200 OK | 401 Unauthorized
+
+POST /api/users
+- Body: { email: string, name: string, role: UserRole }
+- Returns: { user }
+- Status: 201 Created | 400 Bad Request
+```
+
+### Service Endpoints
+```
+GET /api/services
+- Query: ?category=string&pricing_mode=string&active=boolean
+- Returns: { data: LabService[] }
+- Auth: None (public)
+- Status: 200 OK
+
+GET /api/services/[id]
+- Returns: { data: LabService }
+- Auth: None (public)
+- Status: 200 OK | 404 Not Found
+
+POST /api/services
+- Body: { name, description, category, pricePerUnit?, pricing_mode, turnaroundDays }
+- Returns: { data: LabService }
+- Auth: Required (LAB_ADMIN only)
+- Status: 201 Created | 401/403 Unauthorized
+```
+
+### Order Endpoints (Updated for Quotation)
+```
+POST /api/orders
+- Body: { serviceId, sampleDescription, specialInstructions?, clientDetails }
+- Returns: { data: Order }
+- Behavior: Creates with quotedPrice=null if service.pricing_mode=QUOTE_REQUIRED
+- Auth: Required (any authenticated user)
+- Status: 201 Created | 400/401 Bad Request
+
+GET /api/orders
+- Query: ?status=string&clientId=string&labId=string
+- Returns: { data: Order[] }
+- Auth: Required (role-filtered)
+- Status: 200 OK | 401 Unauthorized
+
+PATCH /api/orders/[id]
+- Body: { status?, quotedPrice?, quotedAt?, notes? }
+- Returns: { data: Order }
+- Auth: Required (LAB_ADMIN for quote, CLIENT for approval)
+- Status: 200 OK | 401/403 Forbidden
+
+POST /api/orders/[id]/quote (NEW)
+- Body: { quotedPrice: number, notes?: string }
+- Returns: { data: Order }
+- Behavior: Sets quotedPrice, updates status to QUOTE_PROVIDED
+- Auth: Required (LAB_ADMIN only, must own order)
+- Status: 200 OK | 401/403 Forbidden
+
+POST /api/orders/[id]/approve-quote (NEW)
+- Body: {}
+- Returns: { data: Order }
+- Behavior: Updates status from QUOTE_PROVIDED to PENDING
+- Auth: Required (CLIENT only, must own order)
+- Status: 200 OK | 401/403/409 Conflict
+
+POST /api/orders/[id]/decline-quote (NEW)
+- Body: { reason?: string }
+- Returns: { data: Order }
+- Behavior: Updates status to CANCELLED
+- Auth: Required (CLIENT only, must own order)
+- Status: 200 OK | 401/403 Forbidden
+```
+
+---
+
+## 📈 Monitoring & Observability (Stage 2)
+
+### Recommended Tools:
+- **Error Tracking:** Sentry (captures exceptions, stack traces)
+- **Analytics:** Vercel Analytics (page views, performance)
+- **Logging:** Winston or Pino (structured JSON logs)
+- **Uptime:** UptimeRobot (monitors site availability)
+
+### Example Error Tracking:
+```typescript
+// lib/sentry.ts (Stage 2)
+import * as Sentry from '@sentry/nextjs'
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.NODE_ENV,
+  tracesSampleRate: 1.0,
+})
+
+// Usage in API routes
+try {
+  const result = await prisma.order.create({ ... })
+} catch (error) {
+  Sentry.captureException(error, {
+    tags: { route: '/api/orders', method: 'POST' },
+    user: { id: session.user.id, email: session.user.email }
+  })
+  throw error
+}
+```
+
+---
+
+## 🎓 Neurodivergent Developer Tips
+
+### Managing Overwhelm:
+**When the refactor feels too big:**
+1. Print the 3-week plan from audit document
+2. Cross off Week 1, focus only on database migration
+3. Within Week 1, pick ONE task (e.g., "Add pricing_mode field")
+4. Timebox to 1 hour - if stuck, ask for help
+5. Celebrate small wins (commit = progress)
+
+### Breaking Down Tasks:
+**Example: "Add pricing_mode to LabService"**
+1. ☐ Read Prisma docs on enums (10 min)
+2. ☐ Add PricingMode enum to schema.prisma (5 min)
+3. ☐ Add pricing_mode field to LabService model (5 min)
+4. ☐ Run `npx prisma db push` (2 min)
+5. ☐ Run `npx prisma generate` (2 min)
+6. ☐ Test in Prisma Studio (5 min)
+7. ☐ Update seed.ts to use new field (10 min)
+8. ☐ Commit changes (2 min)
+**Total: 41 minutes** ✅ Achievable in one focus session
+
+### ADHD-Friendly Git Workflow:
+```bash
+# Start each session by checking status
+git status  # What did I change last time?
+git log -3  # What was I working on?
+
+# Make tiny commits (not "fixed everything")
+git add src/prisma/schema.prisma
+git commit -m "feat: add PricingMode enum to LabService"
+
+git add src/prisma/seed.ts
+git commit -m "feat: update seed data with pricing_mode values"
+
+# Push often (external backup for ADHD brain)
+git push origin main
+```
+
+### Context Switching Helpers:
+**Before ending a session:**
+```bash
+# Create a TODO.md file with your current thoughts
+echo "## Next Session ($(date))" >> TODO.md
+echo "- [ ] Finish implementing POST /api/orders/[id]/quote endpoint" >> TODO.md
+echo "- [ ] Test lab can provide custom quote" >> TODO.md
+echo "- Current blocker: Not sure how to validate quote amount" >> TODO.md
+```
+
+**Next session:**
+```bash
+# Read TODO.md to remember where you left off
+cat TODO.md
+
+# Check what files you were editing
+git diff --name-only
+```
+
+---
+
+## 🎉 Celebrating Wins
+
+### Small Wins Count:
+- ✅ Schema migration succeeded without errors = WIN
+- ✅ One test passing = WIN
+- ✅ Dev server starts without TypeScript errors = WIN
+- ✅ Committed code that compiles = WIN
+- ✅ Asked for help when stuck = WIN (not failure!)
+
+### Progress Tracking:
+Update `IMPLEMENTATION_STATUS.md` after each session:
+```markdown
+## Session: October 13, 2025 (2 hours)
+- ✅ Added PricingMode enum to schema
+- ✅ Updated LabService model with pricing_mode field
+- ✅ Ran database migration successfully
+- ⚠️ Seed data update incomplete (need to finish tomorrow)
+- 🚧 Next: Update seed.ts with mix of FIXED and QUOTE_REQUIRED services
+```
+
+---
+
+## 🔗 External Resources
+
+### Official Documentation:
+- **Next.js 14:** https://nextjs.org/docs
+- **Prisma ORM:** https://www.prisma.io/docs
+- **NextAuth.js:** https://next-auth.js.org
+- **Zod Validation:** https://zod.dev
+- **Tailwind CSS:** https://tailwindcss.com/docs
+- **shadcn/ui:** https://ui.shadcn.com
+
+### Learning Resources:
+- **Next.js App Router Tutorial:** https://nextjs.org/learn
+- **Prisma Getting Started:** https://www.prisma.io/docs/getting-started
+- **TypeScript Handbook:** https://www.typescriptlang.org/docs/handbook/
+
+### Community:
+- **Next.js Discord:** https://nextjs.org/discord
+- **Prisma Discord:** https://pris.ly/discord
+- **r/nextjs Reddit:** https://reddit.com/r/nextjs
+
+---
+
+## 📞 When to Ask Claude Code for Help
+
+### Good Questions:
+✅ "How do I add a new enum value to Prisma schema?"
+✅ "Can you review this API route for security issues?"
+✅ "I'm getting TypeScript error X, what does it mean?"
+✅ "Show me an example of testing this component"
+✅ "What's the Next.js best practice for this pattern?"
+
+### Less Helpful Questions:
+❌ "Make my code better" (too vague)
+❌ "Fix all my bugs" (need specific error messages)
+❌ "How do I build a web app?" (too broad)
+❌ "Is this good code?" (need criteria - what aspect?)
+
+### Optimal Help Request Format:
+```
+Context: Working on quotation refactor, adding lab quote endpoint
+Goal: Lab admin should be able to provide custom quote for order
+Current code: [paste specific function/component]
+Error/Issue: Getting 403 Forbidden when lab tries to submit quote
+What I've tried: Checked session.user.role, verified order.labId matches
+Question: How do I properly authorize lab admin to update only their orders?
+```
+
+---
+
+## 🏁 Final Reminders
+
+**You're Not Alone:**
+- Comprehensive documentation exists (15,000+ lines)
+- Code examples available in SCAFFOLD_GUIDE.md
+- Audit document provides step-by-step refactor plan
+- Claude Code available for specific questions
+- Neurodivergent-friendly workflow suggestions throughout
+
+**Progress Over Perfection:**
+- Stage 1 is MVP (minimum viable product)
+- Technical debt is acceptable (documented for Stage 2)
+- Small commits better than perfect code
+- Tests provide safety net for refactoring
+- Asking for help is strength, not weakness
+
+**Your Strengths Apply Here:**
+- Data flow analysis = API design
+- Automation scripts = Backend logic
+- Debugging GNSS = Debugging web apps
+- FORTRAN/Python = TypeScript (just different syntax)
+- Problem-solving mindset = Core developer skill
+
+**The Quotation Refactor:**
+This is a well-defined problem with a clear solution path. The audit document breaks it into 3-week plan with specific tasks. The database schema already supports it. You just need to update the business logic layer and UI.
+
+You've got this. One commit at a time.
+
+---
+
+## 🎯 Your Next Command
+
+**Choose based on your preference:**
+
+**Option A - AI Implementation:**
+```
+Implement quotation system refactor following the 3-week plan in 
+QUOTATION_SYSTEM_AUDIT_20251013.md. Start with Week 1: Database migration 
+and API route updates.
+```
+
+**Option B - Guided Scaffolding:**
+```
+Create implementation scaffolds with TODOs for the quotation refactor. 
+I want to write the code myself following the patterns in SCAFFOLD_GUIDE.md.
+```
+
+**Option C - Hybrid Approach:**
+```
+Implement database migration and API routes for quotation system. 
+I'll handle frontend UI and testing myself.
+```
+
+**Or if you want to review first:**
+```
+Explain the quotation refactor plan in simple terms and help me 
+understand the scope before starting implementation.
+```
+
+---
+
+**Document Version:** 1.0  
+**Last Updated:** October 13, 2025  
+**Status:** Ready for Quotation System Refactor (Phase 2)  
+**Estimated Completion:** November 10, 2025 (4 weeks at 20 hrs/week)
+
+---
+
+*This CLAUDE.md file is your north star. When lost, read this. When overwhelmed, reference the checklist. When stuck, ask specific questions. You're building something real and valuable. Keep going.*

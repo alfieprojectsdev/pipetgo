@@ -1,0 +1,1093 @@
+# PipetGo - Comprehensive Sitemap & User Flows
+
+**Document Version:** 1.0
+**Last Updated:** 2025-10-10
+**Project:** PipetGo MVP - B2B Laboratory Services Marketplace
+**Status:** Stage 1 Implementation Guide
+
+---
+
+## Table of Contents
+
+1. [Overview](#1-overview)
+2. [Sitemap](#2-sitemap)
+3. [User Roles & Permissions](#3-user-roles--permissions)
+4. [User Flow Diagrams](#4-user-flow-diagrams)
+5. [Page-by-Page Specifications](#5-page-by-page-specifications)
+6. [Navigation Structure](#6-navigation-structure)
+7. [URL Schema](#7-url-schema)
+
+---
+
+## 1. Overview
+
+### 1.1 Purpose
+This document provides a comprehensive map of all pages, routes, and user interactions in the PipetGo platform. It serves as the single source of truth for:
+- Frontend developers implementing pages
+- UX designers creating wireframes
+- Backend developers building API endpoints
+- QA engineers writing test cases
+
+### 1.2 Application Architecture
+- **Frontend Framework:** Next.js 14 (App Router)
+- **Routing:** File-based routing in `app/` directory
+- **Authentication:** NextAuth.js v4 with session management
+- **Authorization:** Role-based access control (RBAC)
+
+### 1.3 Key Concepts
+- **Public Routes:** Accessible without authentication
+- **Protected Routes:** Require authentication
+- **Role-Restricted Routes:** Require specific user roles
+- **Server Components:** Default for data fetching
+- **Client Components:** For interactivity (forms, state management)
+
+---
+
+## 2. Sitemap
+
+### 2.1 Visual Sitemap
+
+```
+PipetGo Platform
+│
+├── Public Pages (No Auth Required)
+│   ├── / (Homepage)
+│   ├── /services (Service Catalog)
+│   ├── /services/[id] (Service Detail)
+│   ├── /labs (Lab Directory - Optional MVP)
+│   ├── /labs/[id] (Lab Profile)
+│   ├── /marketing/about
+│   ├── /marketing/contact
+│   └── /marketing/how-it-works (Optional)
+│
+├── Authentication Pages
+│   ├── /auth/signin
+│   ├── /auth/signup
+│   ├── /auth/error
+│   └── /auth/verify-email (Stage 2)
+│
+├── Client Dashboard (Role: CLIENT)
+│   ├── /dashboard/client
+│   ├── /dashboard/client/orders
+│   ├── /dashboard/client/orders/[id]
+│   ├── /dashboard/client/profile
+│   └── /dashboard/client/settings
+│
+├── Lab Admin Dashboard (Role: LAB_ADMIN)
+│   ├── /dashboard/lab
+│   ├── /dashboard/lab/orders
+│   ├── /dashboard/lab/orders/[id]
+│   ├── /dashboard/lab/services
+│   ├── /dashboard/lab/services/new
+│   ├── /dashboard/lab/services/[id]/edit
+│   ├── /dashboard/lab/profile
+│   └── /dashboard/lab/settings
+│
+├── Platform Admin Dashboard (Role: ADMIN)
+│   ├── /dashboard/admin
+│   ├── /dashboard/admin/orders
+│   ├── /dashboard/admin/labs
+│   ├── /dashboard/admin/users
+│   ├── /dashboard/admin/analytics
+│   └── /dashboard/admin/settings
+│
+├── Order Flow (Protected)
+│   ├── /order/[serviceId] (Order Submission Form)
+│   ├── /order/success (Order Confirmation)
+│   └── /order/[orderId]/details (Order Details)
+│
+└── Utility Pages
+    ├── /404 (Not Found)
+    ├── /500 (Server Error)
+    └── /maintenance (Scheduled Downtime)
+```
+
+### 2.2 Route Count Summary
+
+| Category | Route Count | Auth Required |
+|----------|-------------|---------------|
+| Public Pages | 7 | No |
+| Auth Pages | 3 | No |
+| Client Dashboard | 5 | Yes (CLIENT) |
+| Lab Dashboard | 8 | Yes (LAB_ADMIN) |
+| Admin Dashboard | 6 | Yes (ADMIN) |
+| Order Flow | 3 | Yes (Any authenticated) |
+| Utility Pages | 3 | No |
+| **Total** | **35** | - |
+
+---
+
+## 3. User Roles & Permissions
+
+### 3.1 Role Definitions
+
+| Role | Description | Access Level |
+|------|-------------|--------------|
+| **Anonymous** | Unauthenticated visitor | Browse services, view labs, cannot submit orders |
+| **CLIENT** | Laboratory service client | Submit orders, track orders, download results |
+| **LAB_ADMIN** | Laboratory administrator | Manage lab profile, services, fulfill orders, upload results |
+| **ADMIN** | Platform administrator | Full access, user management, platform oversight |
+
+### 3.2 Permission Matrix
+
+| Action | Anonymous | CLIENT | LAB_ADMIN | ADMIN |
+|--------|-----------|--------|-----------|-------|
+| View service catalog | ✅ | ✅ | ✅ | ✅ |
+| View service details | ✅ | ✅ | ✅ | ✅ |
+| Submit order | ❌ | ✅ | ✅ | ✅ |
+| View own orders | ❌ | ✅ | ❌ | ✅ |
+| View lab's orders | ❌ | ❌ | ✅ | ✅ |
+| Update order status | ❌ | ❌ | ✅ | ✅ |
+| Upload results | ❌ | ❌ | ✅ | ✅ |
+| Create lab profile | ❌ | ❌ | ✅ | ✅ |
+| Manage services | ❌ | ❌ | ✅ | ✅ |
+| View all users | ❌ | ❌ | ❌ | ✅ |
+| Delete orders | ❌ | ❌ | ❌ | ✅ |
+
+---
+
+## 4. User Flow Diagrams
+
+### 4.1 Client Order Submission Flow
+
+```mermaid
+graph TD
+    A[Client visits homepage] --> B{Authenticated?}
+    B -->|No| C[Browse services as guest]
+    B -->|Yes| D[Browse services]
+
+    C --> E[Click 'Request Test']
+    E --> F[Redirect to /auth/signin]
+    F --> G[Sign in or sign up]
+    G --> H[Redirect back to service]
+
+    D --> I[Click 'Request Test']
+    H --> I
+    I --> J[/order/serviceId page]
+    J --> K[Fill order form]
+    K --> L{Validate form}
+    L -->|Invalid| K
+    L -->|Valid| M[Submit order]
+    M --> N[POST /api/orders]
+    N --> O{Success?}
+    O -->|No| P[Show error message]
+    P --> K
+    O -->|Yes| Q[Redirect to /dashboard/client]
+    Q --> R[View order in dashboard]
+    R --> S[Receive email confirmation]
+```
+
+### 4.2 Lab Order Fulfillment Flow
+
+```mermaid
+graph TD
+    A[Lab admin logs in] --> B[/dashboard/lab]
+    B --> C[View pending orders]
+    C --> D[Click order to view details]
+    D --> E[/dashboard/lab/orders/orderId]
+    E --> F[Review order details]
+    F --> G{Decision}
+
+    G -->|Acknowledge| H[Update status to ACKNOWLEDGED]
+    H --> I[PATCH /api/orders/orderId]
+    I --> J[Client receives email]
+    J --> K[Update status to IN_PROGRESS]
+    K --> L[Perform testing]
+    L --> M[Upload results]
+    M --> N[POST /api/orders/orderId/attachments]
+    N --> O[Update status to COMPLETED]
+    O --> P[Client receives email with results]
+
+    G -->|Reject| Q[Update status to CANCELLED]
+    Q --> R[Add reason in notes]
+    R --> S[Client receives email]
+```
+
+### 4.3 First-Time Lab Registration Flow
+
+```mermaid
+graph TD
+    A[User visits homepage] --> B[Click 'Register as Lab']
+    B --> C[/auth/signup]
+    C --> D[Fill registration form]
+    D --> E[Select role: LAB_ADMIN]
+    E --> F[Submit form]
+    F --> G{Validate input}
+    G -->|Invalid| D
+    G -->|Valid| H[POST /api/auth/register]
+    H --> I{Success?}
+    I -->|No| J[Show error: email exists]
+    J --> D
+    I -->|Yes| K[Account created]
+    K --> L[Redirect to /auth/signin]
+    L --> M[Sign in with credentials]
+    M --> N[Redirect to /dashboard/lab]
+    N --> O{Lab profile exists?}
+    O -->|No| P[Show onboarding prompt]
+    P --> Q[Click 'Create Lab Profile']
+    Q --> R[/dashboard/lab/profile/new]
+    R --> S[Fill lab details form]
+    S --> T[POST /api/labs]
+    T --> U[Lab profile created]
+    U --> V[Redirect to /dashboard/lab/services]
+    V --> W[Prompt to add first service]
+```
+
+### 4.4 Service Discovery Flow
+
+```mermaid
+graph TD
+    A[User visits homepage] --> B[View featured services]
+    B --> C{Action}
+    C -->|Search| D[Enter keywords in search bar]
+    C -->|Filter| E[Select category filter]
+    C -->|Browse| F[Scroll service grid]
+
+    D --> G[GET /api/services?search=keyword]
+    E --> H[GET /api/services?category=X]
+    F --> I[Load more services]
+
+    G --> J[Display filtered results]
+    H --> J
+    I --> J
+
+    J --> K[Click service card]
+    K --> L[/services/serviceId]
+    L --> M[View service details]
+    M --> N{Interested?}
+    N -->|Yes| O[Click 'Request Test']
+    N -->|No| P[Go back to catalog]
+    O --> Q{Authenticated?}
+    Q -->|Yes| R[/order/serviceId]
+    Q -->|No| S[/auth/signin]
+```
+
+---
+
+## 5. Page-by-Page Specifications
+
+### 5.1 Public Pages
+
+#### 5.1.1 Homepage (`/`)
+**Purpose:** Landing page showcasing platform value and service catalog
+**Auth Required:** No
+**Components:**
+- Hero section with CTA ("Find Laboratory Services")
+- Search bar (filter services by name/category)
+- Featured services grid (6-12 services)
+- How it works section (3-step process)
+- Footer with links
+
+**User Actions:**
+- Search services
+- Filter by category
+- Click service card → view details
+- Click 'Request Test" → sign in prompt
+- Click 'Register as Lab" → signup page
+
+**API Calls:**
+- `GET /api/services?featured=true&limit=12`
+
+**Key Features:**
+- Server-side rendered for SEO
+- Mobile-responsive grid
+- Fast page load (< 2s)
+
+---
+
+#### 5.1.2 Service Catalog (`/services`)
+**Purpose:** Browse all available lab services with filters
+**Auth Required:** No
+**Components:**
+- Filter sidebar (category, price range, location, turnaround time)
+- Service cards grid (paginated, 20 per page)
+- Sort dropdown (price, turnaround, newest)
+- Search bar
+- Breadcrumbs
+
+**User Actions:**
+- Apply filters
+- Sort results
+- Search by keyword
+- Click service card → view details
+- Navigate pages (1, 2, 3...)
+
+**API Calls:**
+- `GET /api/services?category=X&minPrice=Y&maxPrice=Z&page=1&limit=20`
+
+**Key Features:**
+- URL params reflect filters (shareable links)
+- Skeleton loaders while fetching
+- Empty state if no results
+
+---
+
+#### 5.1.3 Service Detail (`/services/[id]`)
+**Purpose:** Detailed view of a single lab service
+**Auth Required:** No
+**Components:**
+- Service name and description
+- Lab information card (name, location, certifications)
+- Pricing breakdown table
+- Turnaround time
+- Sample requirements
+- Related services carousel (same lab or category)
+- CTA button: "Request This Service"
+
+**User Actions:**
+- View full description
+- Read lab profile link
+- Click 'Request This Service" → order form (auth required)
+- View related services
+
+**API Calls:**
+- `GET /api/services/[id]`
+- `GET /api/services?labId=X&limit=4` (related services)
+
+**Key Features:**
+- Breadcrumbs: Home > Services > [Category] > [Service Name]
+- Schema.org markup for SEO
+- Share buttons (optional)
+
+---
+
+#### 5.1.4 Lab Profile (`/labs/[id]`)
+**Purpose:** Public view of a laboratory's profile
+**Auth Required:** No
+**Components:**
+- Lab name and logo
+- Description
+- Location map (optional Stage 2)
+- Certifications badges
+- Services offered grid
+- Contact information
+- Reviews (Stage 3)
+
+**User Actions:**
+- View lab details
+- Click service card → service detail
+- Contact lab (email link or form)
+
+**API Calls:**
+- `GET /api/labs/[id]`
+- `GET /api/services?labId=[id]`
+
+**Key Features:**
+- Public profile for marketing
+- Lab admins can edit from dashboard
+
+---
+
+### 5.2 Authentication Pages
+
+#### 5.2.1 Sign In (`/auth/signin`)
+**Purpose:** User authentication
+**Auth Required:** No
+**Components:**
+- Email input
+- Password input (Stage 2; Stage 1 uses email-only)
+- "Remember me" checkbox (optional)
+- Submit button
+- Link to sign up page
+- Link to forgot password (Stage 2)
+
+**User Actions:**
+- Enter credentials
+- Submit form
+- Click 'Sign up" → registration page
+
+**API Calls:**
+- `POST /api/auth/signin` (NextAuth)
+
+**Key Features:**
+- Client-side validation (email format)
+- Error messages (invalid credentials, account not found)
+- Redirect to original page after login (if came from protected route)
+
+---
+
+#### 5.2.2 Sign Up (`/auth/signup`)
+**Purpose:** New user registration
+**Auth Required:** No
+**Components:**
+- Name input
+- Email input
+- Password input (Stage 2)
+- Role selection dropdown (CLIENT, LAB_ADMIN)
+- Terms checkbox (optional)
+- Submit button
+- Link to sign in page
+
+**User Actions:**
+- Fill form
+- Select role
+- Submit form
+- Click 'Sign in" → login page
+
+**API Calls:**
+- `POST /api/users` (creates user)
+
+**Key Features:**
+- Client-side validation (email format, password strength in Stage 2)
+- Server-side validation (email uniqueness)
+- Redirect to signin after successful registration
+
+---
+
+### 5.3 Client Dashboard Pages
+
+#### 5.3.1 Client Dashboard (`/dashboard/client`)
+**Purpose:** Overview of client's orders and activity
+**Auth Required:** Yes (CLIENT role)
+**Components:**
+- Welcome header with user name
+- Stats cards:
+  - Total orders
+  - Pending orders
+  - Completed orders
+  - Total spent
+- Recent orders list (5 most recent)
+- Quick actions:
+  - Browse services
+  - View all orders
+- Notifications panel (optional Stage 2)
+
+**User Actions:**
+- Click order card → order details
+- Click 'View All Orders" → orders list
+- Click 'Browse Services" → homepage
+
+**API Calls:**
+- `GET /api/orders?clientId=[userId]`
+- `GET /api/users/me` (for welcome message)
+
+**Key Features:**
+- Server-side rendered for speed
+- Auto-refresh on order status change (Stage 2)
+- Empty state if no orders: CTA to browse services
+
+---
+
+#### 5.3.2 Client Orders List (`/dashboard/client/orders`)
+**Purpose:** View all orders submitted by client
+**Auth Required:** Yes (CLIENT role)
+**Components:**
+- Orders table/grid with:
+  - Order ID
+  - Service name
+  - Lab name
+  - Status badge
+  - Submitted date
+  - Actions (View Details)
+- Filter tabs: All | Pending | In Progress | Completed
+- Search bar (by service or order ID)
+- Pagination
+
+**User Actions:**
+- Filter by status
+- Search orders
+- Click order row → order details
+- Navigate pages
+
+**API Calls:**
+- `GET /api/orders?clientId=[userId]&status=PENDING`
+
+**Key Features:**
+- Real-time status updates (polling or websockets in Stage 2)
+- Sortable columns
+- Export to CSV (Stage 2)
+
+---
+
+#### 5.3.3 Client Order Detail (`/dashboard/client/orders/[id]`)
+**Purpose:** Detailed view of a single order
+**Auth Required:** Yes (CLIENT role, must own order)
+**Components:**
+- Order summary card:
+  - Order ID
+  - Status badge
+  - Service name
+  - Lab name
+  - Submitted date
+  - Quoted price
+- Sample description
+- Special instructions
+- Timeline (status history with timestamps)
+- Attachments section:
+  - Specifications uploaded by client
+  - Results uploaded by lab
+  - Download buttons
+- Contact lab button (opens email client)
+
+**User Actions:**
+- Download results (if status = COMPLETED)
+- View attachments
+- Contact lab
+- Cancel order (if status = PENDING, optional)
+
+**API Calls:**
+- `GET /api/orders/[id]`
+- `GET /api/orders/[id]/attachments`
+
+**Key Features:**
+- Access control: only order owner can view
+- Download links expire after 24 hours (Stage 2)
+- Print order summary (browser print)
+
+---
+
+### 5.4 Lab Admin Dashboard Pages
+
+#### 5.4.1 Lab Dashboard (`/dashboard/lab`)
+**Purpose:** Overview of lab's operations
+**Auth Required:** Yes (LAB_ADMIN role)
+**Components:**
+- Lab name header
+- Stats cards:
+  - Pending orders
+  - In progress orders
+  - Completed this month
+  - Revenue this month (mock in Stage 1)
+- Recent orders table (10 most recent)
+- Quick actions:
+  - View all orders
+  - Manage services
+  - Edit lab profile
+
+**User Actions:**
+- Click order row → order details
+- Click stats card → filtered orders view
+- Click 'Manage Services" → services list
+
+**API Calls:**
+- `GET /api/orders?labId=[labId]`
+- `GET /api/labs/[labId]`
+
+**Key Features:**
+- Onboarding prompt if lab profile incomplete
+- Alert for pending orders requiring attention
+- Lab performance metrics
+
+---
+
+#### 5.4.2 Lab Orders List (`/dashboard/lab/orders`)
+**Purpose:** View and manage all lab's orders
+**Auth Required:** Yes (LAB_ADMIN role)
+**Components:**
+- Orders table with:
+  - Order ID
+  - Client name
+  - Service name
+  - Status badge
+  - Submitted date
+  - Actions (View, Update Status)
+- Filter tabs: All | Pending | Acknowledged | In Progress | Completed
+- Search bar
+- Bulk actions (Stage 2)
+
+**User Actions:**
+- Filter by status
+- Search orders
+- Click order row → order details
+- Quick status update dropdown
+
+**API Calls:**
+- `GET /api/orders?labId=[labId]&status=PENDING`
+
+**Key Features:**
+- Pending orders highlighted
+- Notification badge for new orders
+- Export to CSV (Stage 2)
+
+---
+
+#### 5.4.3 Lab Order Detail (`/dashboard/lab/orders/[id]`)
+**Purpose:** Manage a single order
+**Auth Required:** Yes (LAB_ADMIN role, must own order)
+**Components:**
+- Order summary (same as client view)
+- Client contact information card
+- Status update section:
+  - Current status badge
+  - Status transition dropdown
+  - Update button
+  - Add internal notes textarea
+- Upload results section:
+  - File upload input
+  - Attachment type selector (result, certificate)
+  - Upload button
+- Attachments list (client specs + lab results)
+- Order timeline
+
+**User Actions:**
+- Update order status
+- Upload result files
+- Add internal notes
+- Contact client (email link)
+- View client specifications
+
+**API Calls:**
+- `GET /api/orders/[id]`
+- `PATCH /api/orders/[id]` (status update)
+- `POST /api/orders/[id]/attachments` (file upload)
+
+**Key Features:**
+- Status transition validation (PENDING → ACKNOWLEDGED → IN_PROGRESS → COMPLETED)
+- File upload with progress bar
+- Auto-notification to client on status change
+
+---
+
+#### 5.4.4 Lab Services Management (`/dashboard/lab/services`)
+**Purpose:** Manage lab's service offerings
+**Auth Required:** Yes (LAB_ADMIN role)
+**Components:**
+- Services table with:
+  - Service name
+  - Category
+  - Price
+  - Turnaround days
+  - Active status toggle
+  - Actions (Edit, Deactivate)
+- "Add New Service" button
+- Filter by category
+- Search bar
+
+**User Actions:**
+- Click 'Add New Service" → new service form
+- Click Edit → edit service form
+- Toggle active status
+- Delete service (soft delete)
+
+**API Calls:**
+- `GET /api/services?labId=[labId]`
+- `POST /api/services` (create)
+- `PATCH /api/services/[id]` (update)
+
+**Key Features:**
+- Inactive services hidden from public catalog
+- Cannot delete service with active orders
+
+---
+
+#### 5.4.5 Lab Profile Settings (`/dashboard/lab/profile`)
+**Purpose:** Edit lab profile
+**Auth Required:** Yes (LAB_ADMIN role)
+**Components:**
+- Lab information form:
+  - Name input
+  - Description textarea
+  - Location inputs (address, city, province)
+  - Certifications multi-select
+  - Logo upload (Stage 2)
+- Save button
+- Cancel button
+
+**User Actions:**
+- Edit profile fields
+- Add/remove certifications
+- Save changes
+- Cancel (revert changes)
+
+**API Calls:**
+- `GET /api/labs/[labId]`
+- `PATCH /api/labs/[labId]`
+
+**Key Features:**
+- Form validation (required fields)
+- Preview lab profile (opens public view)
+- Success message on save
+
+---
+
+### 5.5 Platform Admin Dashboard Pages
+
+#### 5.5.1 Admin Dashboard (`/dashboard/admin`)
+**Purpose:** Platform-wide oversight
+**Auth Required:** Yes (ADMIN role)
+**Components:**
+- Platform stats cards:
+  - Total orders
+  - Total revenue (mock)
+  - Active labs
+  - Total clients
+- Recent orders table (all labs)
+- Lab performance chart (optional)
+- User growth chart (optional)
+- System health indicators
+
+**User Actions:**
+- Click stats card → filtered view
+- Click order → order details
+- View system logs (Stage 2)
+
+**API Calls:**
+- `GET /api/admin/stats`
+- `GET /api/orders?limit=10`
+
+**Key Features:**
+- Full platform visibility
+- Export reports (Stage 2)
+- Real-time metrics (Stage 2)
+
+---
+
+#### 5.5.2 Admin Users Management (`/dashboard/admin/users`)
+**Purpose:** Manage all platform users
+**Auth Required:** Yes (ADMIN role)
+**Components:**
+- Users table with:
+  - Name
+  - Email
+  - Role
+  - Created date
+  - Actions (View, Edit, Disable)
+- Filter by role
+- Search bar
+- Pagination
+
+**User Actions:**
+- Search users
+- Filter by role
+- Click user row → user details
+- Change user role
+- Disable account
+
+**API Calls:**
+- `GET /api/admin/users`
+- `PATCH /api/admin/users/[id]` (update role)
+
+**Key Features:**
+- Cannot delete users with active orders
+- Audit log for role changes
+- Bulk actions (Stage 2)
+
+---
+
+### 5.6 Order Flow Pages
+
+#### 5.6.1 Order Submission Form (`/order/[serviceId]`)
+**Purpose:** Submit a new test order
+**Auth Required:** Yes (any authenticated user)
+**Components:**
+- Service summary card:
+  - Service name
+  - Lab name
+  - Price
+  - Turnaround time
+- Order form:
+  - Sample description textarea (required, min 10 chars)
+  - Special instructions textarea (optional)
+  - Contact information fields (name, email, phone, address)
+- Submit button
+- Cancel button (go back)
+
+**User Actions:**
+- Fill form
+- Submit order
+- Cancel (go back to service catalog)
+
+**API Calls:**
+- `GET /api/services/[serviceId]` (display service info)
+- `POST /api/orders` (submit order)
+
+**Key Features:**
+- Client-side validation (required fields, email format)
+- Server-side validation (Zod schema)
+- Form autosave (Stage 2)
+- Multi-step form (Stage 2)
+
+---
+
+## 6. Navigation Structure
+
+### 6.1 Top Navigation (All Pages)
+
+**Unauthenticated Users:**
+```
+Logo | Services | How It Works | Sign In | Sign Up
+```
+
+**Authenticated Users (CLIENT):**
+```
+Logo | Services | My Orders | Profile | Sign Out
+```
+
+**Authenticated Users (LAB_ADMIN):**
+```
+Logo | Dashboard | Orders | Services | Profile | Sign Out
+```
+
+**Authenticated Users (ADMIN):**
+```
+Logo | Admin Dashboard | Users | Labs | Orders | Sign Out
+```
+
+### 6.2 Sidebar Navigation (Dashboard Pages)
+
+**Client Dashboard:**
+- Overview
+- My Orders
+- Browse Services
+- Profile
+- Settings
+
+**Lab Dashboard:**
+- Overview
+- Orders
+- Services
+- Lab Profile
+- Settings
+
+**Admin Dashboard:**
+- Overview
+- Orders
+- Labs
+- Users
+- Analytics
+- Settings
+
+### 6.3 Breadcrumbs
+
+All dashboard pages include breadcrumbs:
+- `Home > Dashboard > Orders > Order #123`
+- `Home > Services > Water Testing > Order Form`
+
+---
+
+## 7. URL Schema
+
+### 7.1 URL Design Principles
+- RESTful structure
+- Readable and SEO-friendly
+- Consistent naming conventions
+- ID format: CUID (e.g., `clx9k2m3n0000qe8t5h1g2v4w`)
+
+### 7.2 Complete URL Reference
+
+| Route | Purpose | Auth | Role |
+|-------|---------|------|------|
+| `/` | Homepage | No | - |
+| `/services` | Service catalog | No | - |
+| `/services/[id]` | Service detail | No | - |
+| `/labs/[id]` | Lab profile | No | - |
+| `/marketing/about` | About page | No | - |
+| `/marketing/contact` | Contact page | No | - |
+| `/auth/signin` | Sign in | No | - |
+| `/auth/signup` | Sign up | No | - |
+| `/dashboard/client` | Client dashboard | Yes | CLIENT |
+| `/dashboard/client/orders` | Client orders list | Yes | CLIENT |
+| `/dashboard/client/orders/[id]` | Client order detail | Yes | CLIENT |
+| `/dashboard/lab` | Lab dashboard | Yes | LAB_ADMIN |
+| `/dashboard/lab/orders` | Lab orders list | Yes | LAB_ADMIN |
+| `/dashboard/lab/orders/[id]` | Lab order detail | Yes | LAB_ADMIN |
+| `/dashboard/lab/services` | Lab services list | Yes | LAB_ADMIN |
+| `/dashboard/lab/services/new` | Add new service | Yes | LAB_ADMIN |
+| `/dashboard/lab/profile` | Edit lab profile | Yes | LAB_ADMIN |
+| `/dashboard/admin` | Admin dashboard | Yes | ADMIN |
+| `/dashboard/admin/users` | Users management | Yes | ADMIN |
+| `/dashboard/admin/labs` | Labs management | Yes | ADMIN |
+| `/order/[serviceId]` | Order form | Yes | Any |
+| `/order/success` | Order confirmation | Yes | Any |
+
+### 7.3 API Endpoint Reference
+
+| Method | Endpoint | Purpose | Auth | Role |
+|--------|----------|---------|------|------|
+| POST | `/api/auth/signin` | Sign in | No | - |
+| POST | `/api/users` | Register user | No | - |
+| GET | `/api/services` | List services | No | - |
+| GET | `/api/services/[id]` | Get service | No | - |
+| GET | `/api/labs/[id]` | Get lab profile | No | - |
+| GET | `/api/orders` | List orders | Yes | All |
+| POST | `/api/orders` | Create order | Yes | Any |
+| GET | `/api/orders/[id]` | Get order | Yes | Owner/Lab/Admin |
+| PATCH | `/api/orders/[id]` | Update order | Yes | Lab/Admin |
+| POST | `/api/orders/[id]/attachments` | Upload file | Yes | Owner/Lab |
+
+---
+
+## 8. Key User Journeys
+
+### 8.1 Happy Path: Client Submits First Order
+
+1. **Discovery:**
+   - Client lands on homepage (marketing campaign or search)
+   - Browses featured services
+   - Clicks "Water Testing" service card
+
+2. **Exploration:**
+   - Views service details: price ₱500, 3-day turnaround
+   - Reads lab profile: Manila Testing Laboratory, ISO certified
+   - Clicks "Request This Service"
+
+3. **Authentication:**
+   - Redirected to `/auth/signin` (not logged in)
+   - Clicks "Sign up" (first-time user)
+   - Fills registration form: name, email, role=CLIENT
+   - Submits form → account created
+   - Signs in with email
+
+4. **Order Submission:**
+   - Redirected back to service detail page
+   - Clicks "Request This Service" again
+   - Fills order form:
+     - Sample description: "5 water samples from industrial site"
+     - Contact info: name, phone, address
+   - Submits order
+
+5. **Confirmation:**
+   - Order created with status PENDING
+   - Redirected to client dashboard
+   - Sees new order in "Recent Orders"
+   - Receives email confirmation
+
+6. **Tracking:**
+   - Lab admin acknowledges order → status = ACKNOWLEDGED
+   - Client receives email notification
+   - Client checks dashboard → status updated
+   - Lab completes testing → uploads results
+   - Status = COMPLETED
+   - Client receives email with results
+   - Client downloads results from dashboard
+
+**Total Time:** 5-7 minutes
+**Touchpoints:** 6 pages, 2 emails
+
+---
+
+### 8.2 Happy Path: Lab Admin Fulfills Order
+
+1. **Notification:**
+   - Lab admin receives email: "New order received"
+   - Clicks link in email → redirects to login (if not logged in)
+   - Signs in → redirected to lab dashboard
+
+2. **Review:**
+   - Sees notification badge: "3 pending orders"
+   - Clicks "Pending Orders" → orders list
+   - Sees new order: "Water Testing - 5 samples"
+   - Clicks order row → order details page
+
+3. **Acknowledgment:**
+   - Reviews order details:
+     - Client contact info
+     - Sample description
+     - Special instructions
+   - Clicks "Acknowledge Order"
+   - Status changes to ACKNOWLEDGED
+   - Client receives email notification
+
+4. **Testing:**
+   - Lab performs physical testing (offline)
+   - Updates status to IN_PROGRESS via dashboard
+   - Client receives email notification
+
+5. **Results Upload:**
+   - Lab completes testing
+   - Returns to order detail page
+   - Clicks "Upload Results"
+   - Selects PDF file: `water_test_results.pdf`
+   - Chooses attachment type: "Result"
+   - Uploads file
+
+6. **Completion:**
+   - Clicks "Mark as Completed"
+   - Status changes to COMPLETED
+   - Client receives email: "Your results are ready"
+   - Client downloads results
+
+**Total Time:** Lab processes order over 3 days, dashboard interactions ~10 minutes
+**Touchpoints:** 4 pages, 3 emails
+
+---
+
+## 9. Error Handling & Edge Cases
+
+### 9.1 Common Error Scenarios
+
+| Scenario | User Experience | Solution |
+|----------|-----------------|----------|
+| User tries to access order they don't own | Show 403 Forbidden page | Check userId matches order.clientId or order.labId |
+| User submits order for inactive service | Show error: "Service no longer available" | Check service.active before allowing order |
+| File upload exceeds 10MB limit | Show error: "File too large, max 10MB" | Validate file size client-side and server-side |
+| User session expires during form submission | Redirect to signin, preserve form data | Store form data in sessionStorage, restore after login |
+| Lab tries to update order to invalid status | Show error: "Invalid status transition" | Validate status flow server-side |
+| User clicks "Sign In" when already logged in | Redirect to appropriate dashboard | Check session, redirect based on role |
+| API request fails (network error) | Show error message with retry button | Display user-friendly error, log to Sentry |
+
+### 9.2 Empty States
+
+| Page | Empty State Message | CTA |
+|------|---------------------|-----|
+| Client Orders List | "You haven't submitted any orders yet" | "Browse Services" button |
+| Lab Orders List | "No orders received yet" | "Share your lab profile" link |
+| Lab Services List | "You haven't added any services yet" | "Add Your First Service" button |
+| Service Catalog (no results) | "No services match your filters" | "Clear Filters" button |
+
+---
+
+## 10. Implementation Checklist
+
+### 10.1 Phase 1: Core Pages (Week 1-3)
+- [ ] Homepage with service catalog
+- [ ] Service detail page
+- [ ] Sign in / Sign up pages
+- [ ] Client dashboard
+- [ ] Order submission form
+
+### 10.2 Phase 2: Dashboard Pages (Week 4-5)
+- [ ] Lab dashboard
+- [ ] Lab orders management
+- [ ] Lab services management
+- [ ] Client order detail page
+- [ ] Lab order detail page
+
+### 10.3 Phase 3: Admin & Polish (Week 6-7)
+- [ ] Admin dashboard
+- [ ] Admin users management
+- [ ] Error pages (404, 500)
+- [ ] Navigation components
+- [ ] Breadcrumbs
+
+### 10.4 Phase 4: Testing & Refinement (Week 8)
+- [ ] Test all user flows
+- [ ] Test role-based access control
+- [ ] Test mobile responsiveness
+- [ ] Fix bugs
+- [ ] Polish UI/UX
+
+---
+
+## 11. Appendices
+
+### A. Wireframe References
+- [Link to Figma/Sketch designs]
+- [Link to mobile mockups]
+
+### B. API Documentation
+- See: `/docs/API_DOCUMENTATION.md`
+
+### C. Database Schema
+- See: `prisma/schema.prisma`
+
+### D. Testing Scripts
+- See: `/tests/e2e/user-flows.spec.ts`
+
+---
+
+**Document Metadata:**
+- **Version:** 1.0
+- **Last Updated:** 2025-10-10
+- **Author:** Technical Team
+- **Status:** Ready for Implementation
+- **Next Review:** After Stage 1 completion
+
+---
+
+**Change Log:**
+
+| Date | Version | Changes |
+|------|---------|---------|
+| 2025-10-10 | 1.0 | Initial comprehensive sitemap and user flows document |
+

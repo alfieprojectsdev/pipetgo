@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CLIENT
+  LAB_ADMIN
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  ACKNOWLEDGED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(CLIENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  ownedLabs     Lab[]
+  clientOrders  Order[]   @relation("ClientOrders")
+  attachments   Attachment[]
+
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Lab {
+  id            String   @id @default(cuid())
+  ownerId       String
+  name          String
+  description   String?
+  location      Json?
+  certifications String[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  owner    User         @relation(fields: [ownerId], references: [id])
+  services LabService[]
+  orders   Order[]
+
+  @@map("labs")
+}
+
+model LabService {
+  id                 String   @id @default(cuid())
+  labId              String
+  name               String
+  description        String?
+  category           String
+  pricePerUnit       Decimal?
+  unitType           String   @default("per_sample")
+  turnaroundDays     Int?
+  sampleRequirements String?
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  lab    Lab     @relation(fields: [labId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@map("lab_services")
+}
+
+model Order {
+  id                  String      @id @default(cuid())
+  clientId            String
+  labId               String
+  serviceId           String
+  status              OrderStatus @default(PENDING)
+  clientDetails       Json
+  sampleDescription   String
+  specialInstructions String?
+  quotedPrice         Decimal?
+  quotedAt            DateTime?
+  acknowledgedAt      DateTime?
+  completedAt         DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  client      User         @relation("ClientOrders", fields: [clientId], references: [id])
+  lab         Lab          @relation(fields: [labId], references: [id])
+  service     LabService   @relation(fields: [serviceId], references: [id])
+  attachments Attachment[]
+
+  @@map("orders")
+}
+
+model Attachment {
+  id             String   @id @default(cuid())
+  orderId        String
+  uploadedById   String
+  fileName       String
+  fileUrl        String
+  fileType       String
+  fileSize       Int?
+  attachmentType String   // 'specification', 'result', 'certificate'
+  createdAt      DateTime @default(now())
+
+  order      Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  uploadedBy User  @relation(fields: [uploadedById], references: [id])
+
+  @@map("attachments")
+}
