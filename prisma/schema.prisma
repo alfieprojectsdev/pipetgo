@@ -13,12 +13,21 @@ enum UserRole {
   ADMIN
 }
 
+enum PricingMode {
+  QUOTE_REQUIRED  // Default - Always requires custom quote
+  FIXED           // Backward compatibility - Instant booking
+  HYBRID          // Flexible - Reference price OR custom quote
+}
+
 enum OrderStatus {
-  PENDING
-  ACKNOWLEDGED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
+  QUOTE_REQUESTED  // Client submitted RFQ, awaiting lab quote
+  QUOTE_PROVIDED   // Lab provided custom quote, awaiting client approval
+  QUOTE_REJECTED   // Client rejected quote
+  PENDING          // Quote approved OR fixed-rate order, awaiting lab acknowledgment
+  ACKNOWLEDGED     // Lab acknowledged order
+  IN_PROGRESS      // Testing underway
+  COMPLETED        // Results delivered
+  CANCELLED        // Order cancelled
 }
 
 model Account {
@@ -93,18 +102,19 @@ model Lab {
 }
 
 model LabService {
-  id                 String   @id @default(cuid())
+  id                 String      @id @default(cuid())
   labId              String
   name               String
   description        String?
   category           String
+  pricingMode        PricingMode @default(QUOTE_REQUIRED)
   pricePerUnit       Decimal?
-  unitType           String   @default("per_sample")
+  unitType           String      @default("per_sample")
   turnaroundDays     Int?
   sampleRequirements String?
-  active             Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  active             Boolean     @default(true)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   lab    Lab     @relation(fields: [labId], references: [id], onDelete: Cascade)
   orders Order[]
@@ -117,12 +127,15 @@ model Order {
   clientId            String
   labId               String
   serviceId           String
-  status              OrderStatus @default(PENDING)
+  status              OrderStatus @default(QUOTE_REQUESTED)
   clientDetails       Json
   sampleDescription   String
   specialInstructions String?
   quotedPrice         Decimal?
   quotedAt            DateTime?
+  quoteNotes          String?
+  quoteRejectedAt     DateTime?
+  quoteRejectedReason String?
   acknowledgedAt      DateTime?
   completedAt         DateTime?
   createdAt           DateTime    @default(now())
