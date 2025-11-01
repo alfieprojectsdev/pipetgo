@@ -8,6 +8,7 @@ const createOrderSchema = z.object({
   serviceId: z.string(),
   sampleDescription: z.string().min(10),
   specialInstructions: z.string().optional(),
+  requestCustomQuote: z.boolean().optional(), // For HYBRID mode
   clientDetails: z.object({
     contactEmail: z.string().email(),
     contactPhone: z.string().optional(),
@@ -41,15 +42,55 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Service not found' }, { status: 404 })
     }
 
+    // Determine initial order status and pricing based on service pricing mode
+    let initialStatus: 'QUOTE_REQUESTED' | 'PENDING'
+    let quotedPrice: number | null
+    let quotedAt: Date | null
+
+    if (service.pricingMode === 'QUOTE_REQUIRED') {
+      // QUOTE_REQUIRED: Always requires custom quote from lab
+      initialStatus = 'QUOTE_REQUESTED'
+      quotedPrice = null
+      quotedAt = null
+
+    } else if (service.pricingMode === 'FIXED') {
+      // FIXED: Auto-populate with fixed price, skip quote workflow
+      initialStatus = 'PENDING'
+      quotedPrice = service.pricePerUnit ? Number(service.pricePerUnit) : null
+      quotedAt = new Date()
+
+    } else if (service.pricingMode === 'HYBRID') {
+      // HYBRID: Client chooses instant booking OR custom quote
+      if (validatedData.requestCustomQuote === true) {
+        // Client requested custom quote
+        initialStatus = 'QUOTE_REQUESTED'
+        quotedPrice = null
+        quotedAt = null
+      } else {
+        // Client accepted reference price (instant booking)
+        initialStatus = 'PENDING'
+        quotedPrice = service.pricePerUnit ? Number(service.pricePerUnit) : null
+        quotedAt = new Date()
+      }
+
+    } else {
+      // Fallback: Default to quote-required (safety)
+      initialStatus = 'QUOTE_REQUESTED'
+      quotedPrice = null
+      quotedAt = null
+    }
+
     const order = await prisma.order.create({
       data: {
         clientId: session.user.id,
         labId: service.labId,
         serviceId: service.id,
+        status: initialStatus,
         sampleDescription: validatedData.sampleDescription,
         specialInstructions: validatedData.specialInstructions,
         clientDetails: validatedData.clientDetails,
-        quotedPrice: service.pricePerUnit,
+        quotedPrice,
+        quotedAt,
       },
       include: {
         service: true,
