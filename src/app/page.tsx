@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency } from '@/lib/utils'
 
@@ -12,12 +13,31 @@ interface LabService {
   name: string
   description: string
   category: string
-  pricePerUnit: number
+  pricePerUnit: number | null
+  pricingMode: 'QUOTE_REQUIRED' | 'FIXED' | 'HYBRID'
   turnaroundDays: number
   lab: {
     name: string
     location: any
   }
+}
+
+function getPricingModeVariant(mode: string): 'info' | 'success' | 'default' {
+  const variants = {
+    'QUOTE_REQUIRED': 'info' as const,     // Blue
+    'FIXED': 'success' as const,            // Green
+    'HYBRID': 'default' as const            // Purple (will use default for now, updated in Task 5)
+  }
+  return variants[mode as keyof typeof variants] || 'default'
+}
+
+function getPricingModeLabel(mode: string): string {
+  const labels = {
+    'QUOTE_REQUIRED': 'Quote Required',
+    'FIXED': 'Fixed Rate',
+    'HYBRID': 'Flexible Pricing'
+  }
+  return labels[mode as keyof typeof labels] || mode
 }
 
 export default function Home() {
@@ -112,9 +132,14 @@ export default function Home() {
                   <CardHeader>
                     <div className="flex justify-between items-start mb-2">
                       <CardTitle className="text-lg">{service.name}</CardTitle>
-                      <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                        {service.category}
-                      </span>
+                      <div className="flex gap-2">
+                        <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          {service.category}
+                        </span>
+                        <Badge variant={getPricingModeVariant(service.pricingMode)}>
+                          {getPricingModeLabel(service.pricingMode)}
+                        </Badge>
+                      </div>
                     </div>
                     <CardDescription className="text-sm text-gray-600">
                       {service.lab.name} • {service.lab.location?.city || 'Metro Manila'}
@@ -124,21 +149,50 @@ export default function Home() {
                     <p className="text-gray-700 mb-4 line-clamp-3">
                       {service.description}
                     </p>
-                    <div className="space-y-2 mb-4">
-                      <div className="flex justify-between">
-                        <span className="font-medium">Price:</span>
-                        <span>{formatCurrency(service.pricePerUnit)} per sample</span>
+
+                    {service.pricingMode === 'QUOTE_REQUIRED' && (
+                      <div className="text-gray-600 mb-4">
+                        <p className="flex items-center gap-2">
+                          <span className="text-blue-600">ℹ️</span>
+                          Custom quote required
+                        </p>
+                        <p className="text-sm">Submit RFQ to get pricing</p>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium">Turnaround:</span>
-                        <span>{service.turnaroundDays} days</span>
+                    )}
+
+                    {service.pricingMode === 'FIXED' && (
+                      <div className="mb-4">
+                        <div className="flex justify-between">
+                          <span className="font-medium">Price:</span>
+                          <span className="text-xl font-bold text-green-600">
+                            {formatCurrency(service.pricePerUnit!)} per sample
+                          </span>
+                        </div>
                       </div>
+                    )}
+
+                    {service.pricingMode === 'HYBRID' && service.pricePerUnit && (
+                      <div className="text-gray-700 mb-4">
+                        <p className="text-sm">
+                          From <span className="font-bold">{formatCurrency(service.pricePerUnit)}</span> or request custom quote
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between mb-4">
+                      <span className="font-medium">Turnaround:</span>
+                      <span>{service.turnaroundDays} days</span>
                     </div>
-                    <Button 
+
+                    <Button
                       className="w-full"
                       onClick={() => handleOrderService(service.id)}
                     >
-                      Request Test
+                      {service.pricingMode === 'QUOTE_REQUIRED'
+                        ? 'Request Quote'
+                        : service.pricingMode === 'HYBRID'
+                        ? 'View Options'
+                        : 'Book Service'}
                     </Button>
                   </CardContent>
                 </Card>

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { formatCurrency } from '@/lib/utils'
 
 interface LabService {
@@ -12,7 +13,8 @@ interface LabService {
   name: string
   description: string
   category: string
-  pricePerUnit: number
+  pricingMode: 'QUOTE_REQUIRED' | 'FIXED' | 'HYBRID'
+  pricePerUnit: number | null
   turnaroundDays: number
   sampleRequirements: string
   lab: {
@@ -28,6 +30,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
   const [service, setService] = useState<LabService | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [requestCustomQuote, setRequestCustomQuote] = useState(false)
   const [formData, setFormData] = useState({
     sampleDescription: '',
     specialInstructions: '',
@@ -74,7 +77,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
     setIsSubmitting(true)
 
     try {
-      const orderData = {
+      const orderData: any = {
         serviceId: params.serviceId,
         sampleDescription: formData.sampleDescription,
         specialInstructions: formData.specialInstructions,
@@ -89,6 +92,11 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
             country: 'Philippines'
           }
         }
+      }
+
+      // Add requestCustomQuote for HYBRID services
+      if (service?.pricingMode === 'HYBRID') {
+        orderData.requestCustomQuote = requestCustomQuote
       }
 
       const response = await fetch('/api/orders', {
@@ -150,9 +158,19 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-medium text-gray-900">Price</h4>
-                  <p className="text-lg font-semibold text-blue-600">
-                    {formatCurrency(service.pricePerUnit)} per sample
-                  </p>
+                  {service.pricingMode === 'QUOTE_REQUIRED' ? (
+                    <p className="text-sm text-gray-600">
+                      <span className="text-blue-600">ℹ️</span> Custom quote required
+                    </p>
+                  ) : service.pricingMode === 'FIXED' ? (
+                    <p className="text-lg font-semibold text-green-600">
+                      {formatCurrency(service.pricePerUnit!)} per sample
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-700">
+                      From <span className="font-bold">{formatCurrency(service.pricePerUnit!)}</span>
+                    </p>
+                  )}
                 </div>
                 <div>
                   <h4 className="font-medium text-gray-900">Turnaround</h4>
@@ -212,6 +230,66 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                     placeholder="Any special handling requirements or notes"
                   />
                 </div>
+
+                {/* Pricing Mode Alerts */}
+                {service.pricingMode === 'QUOTE_REQUIRED' && (
+                  <Alert>
+                    <AlertDescription>
+                      <span className="text-blue-600 font-medium">ℹ️ Custom quote required</span>
+                      <p className="text-sm mt-1">
+                        You'll submit an RFQ and receive a custom quote from the lab within 24-48 hours.
+                      </p>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {service.pricingMode === 'HYBRID' && (
+                  <div className="space-y-3">
+                    <div className="flex items-start space-x-2">
+                      <input
+                        type="checkbox"
+                        id="requestCustomQuote"
+                        checked={requestCustomQuote}
+                        onChange={(e) => setRequestCustomQuote(e.target.checked)}
+                        className="mt-1"
+                      />
+                      <label htmlFor="requestCustomQuote" className="text-sm cursor-pointer">
+                        Request custom quote instead of reference price ({service.pricePerUnit ? formatCurrency(service.pricePerUnit) : 'N/A'})
+                      </label>
+                    </div>
+
+                    {requestCustomQuote ? (
+                      <Alert>
+                        <AlertDescription>
+                          <span className="text-blue-600 font-medium">ℹ️ Custom quote</span>
+                          <p className="text-sm mt-1">
+                            You'll submit an RFQ and receive a custom quote from the lab.
+                          </p>
+                        </AlertDescription>
+                      </Alert>
+                    ) : (
+                      <Alert>
+                        <AlertDescription>
+                          <span className="text-green-600 font-medium">✓ Instant booking</span>
+                          <p className="text-sm mt-1">
+                            You'll book at the reference price: {service.pricePerUnit ? formatCurrency(service.pricePerUnit) : 'N/A'}
+                          </p>
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+                )}
+
+                {service.pricingMode === 'FIXED' && (
+                  <Alert>
+                    <AlertDescription>
+                      <span className="text-green-600 font-medium">✓ Fixed rate service</span>
+                      <p className="text-sm mt-1">
+                        Instant booking at {service.pricePerUnit ? formatCurrency(service.pricePerUnit) : 'N/A'} per sample.
+                      </p>
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -286,12 +364,17 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                 </div>
 
                 <div className="pt-4">
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? 'Submitting Request...' : 'Submit Test Request'}
+                    {isSubmitting ? 'Submitting...' :
+                      service.pricingMode === 'QUOTE_REQUIRED' ? 'Submit RFQ' :
+                      service.pricingMode === 'HYBRID' && requestCustomQuote ? 'Submit RFQ' :
+                      service.pricingMode === 'HYBRID' ? `Book Service - ${service.pricePerUnit ? formatCurrency(service.pricePerUnit) : ''}` :
+                      `Book Service - ${service.pricePerUnit ? formatCurrency(service.pricePerUnit) : ''}`
+                    }
                   </Button>
                 </div>
               </form>

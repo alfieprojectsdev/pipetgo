@@ -52,10 +52,10 @@ export default function LabDashboard() {
 
   const updateOrderStatus = async (orderId: string, newStatus: string, withResults = false) => {
     setUpdatingOrder(orderId)
-    
+
     try {
       const updateData: any = { status: newStatus }
-      
+
       // Mock file upload for results
       if (withResults) {
         updateData.resultFileUrl = `https://example.com/results/${orderId}.pdf`
@@ -96,7 +96,7 @@ export default function LabDashboard() {
     switch (order.status) {
       case 'PENDING':
         return (
-          <Button 
+          <Button
             size="sm"
             onClick={() => updateOrderStatus(order.id, 'ACKNOWLEDGED')}
             disabled={updatingOrder === order.id}
@@ -106,7 +106,7 @@ export default function LabDashboard() {
         )
       case 'ACKNOWLEDGED':
         return (
-          <Button 
+          <Button
             size="sm"
             onClick={() => updateOrderStatus(order.id, 'IN_PROGRESS')}
             disabled={updatingOrder === order.id}
@@ -116,7 +116,7 @@ export default function LabDashboard() {
         )
       case 'IN_PROGRESS':
         return (
-          <Button 
+          <Button
             size="sm"
             onClick={() => updateOrderStatus(order.id, 'COMPLETED', true)}
             disabled={updatingOrder === order.id}
@@ -142,8 +142,8 @@ export default function LabDashboard() {
               <h1 className="text-2xl font-bold text-gray-900">Lab Dashboard</h1>
               <p className="text-gray-600">Metro Manila Testing Laboratory</p>
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => signOut({ callbackUrl: '/' })}
             >
               Sign Out
@@ -157,65 +157,7 @@ export default function LabDashboard() {
         <div className="grid md:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardContent className="p-4">
-              <div className="space-y-4">
-              {orders.map((order) => (
-                <Card key={order.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-lg">{order.service.name}</CardTitle>
-                        <CardDescription>
-                          Client: {order.client.name} ({order.client.email})
-                        </CardDescription>
-                      </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                        {order.status.replace('_', ' ')}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600">Sample Description</p>
-                        <p className="font-medium">{order.sampleDescription}</p>
-                        {order.specialInstructions && (
-                          <div className="mt-2">
-                            <p className="text-sm text-gray-600">Special Instructions</p>
-                            <p className="text-sm">{order.specialInstructions}</p>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="grid md:grid-cols-3 gap-4">
-                        <div>
-                          <p className="text-sm text-gray-600">Order Date</p>
-                          <p className="font-medium">{formatDate(order.createdAt)}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Quoted Price</p>
-                          <p className="font-medium">
-                            {order.quotedPrice ? formatCurrency(order.quotedPrice) : 'Not set'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Shipping Address</p>
-                          <p className="text-sm">
-                            {order.clientDetails?.shippingAddress?.city || 'Not provided'}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex justify-between items-center pt-2">
-                        <div className="text-sm text-gray-500">
-                          Order #{order.id.substring(0, 8)}
-                        </div>
-                        {getNextActions(order)}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-blue-600">
                 {orders.length}
               </div>
               <p className="text-sm text-gray-600">Total Orders</p>
@@ -250,7 +192,7 @@ export default function LabDashboard() {
         {/* Orders List */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Recent Orders</h2>
-          
+
           {orders.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
@@ -258,4 +200,68 @@ export default function LabDashboard() {
               </CardContent>
             </Card>
           ) : (
-            <div className="
+            <div className="space-y-4">
+              {orders.map((order) => (
+                <Card key={order.id}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg">{order.service.name}</CardTitle>
+                        <CardDescription>
+                          Client: {order.client.name} ({order.client.email})
+                        </CardDescription>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                        {order.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Sample Description</p>
+                        <p className="font-medium">{order.sampleDescription}</p>
+                        {order.specialInstructions && (
+                          <div className="mt-2">
+                            <p className="text-sm text-gray-600">Special Instructions</p>
+                            <p className="text-sm">{order.specialInstructions}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="grid md:grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600">Order Date</p>
+                          <p className="font-medium">{formatDate(order.createdAt)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Quoted Price</p>
+                          <p className="font-medium">
+                            {order.quotedPrice ? formatCurrency(order.quotedPrice) : 'Not set'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Shipping Address</p>
+                          <p className="text-sm">
+                            {order.clientDetails?.shippingAddress?.city || 'Not provided'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-2">
+                        <div className="text-sm text-gray-500">
+                          Order #{order.id.substring(0, 8)}
+                        </div>
+                        {getNextActions(order)}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  )
+}

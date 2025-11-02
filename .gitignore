@@ -16,6 +16,7 @@ build/
 # Database
 *.db
 *.sqlite
+docs/neondb_connectionstring.md
 
 # IDE
 .vscode/
