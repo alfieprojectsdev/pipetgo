@@ -11,7 +11,9 @@ interface Order {
   id: string
   status: string
   createdAt: string
-  quotedPrice: number
+  quotedPrice?: number | null
+  quotedAt?: string | null
+  quoteNotes?: string | null
   service: { name: string; category: string }
   lab: { name: string }
   attachments: any[]
@@ -46,8 +48,60 @@ export default function ClientDashboard() {
     }
   }
 
+  const handleApproveQuote = async (orderId: string) => {
+    if (!confirm('Approve this quote and proceed with testing?')) return
+
+    try {
+      const response = await fetch(`/api/orders/${orderId}/approve-quote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approved: true })
+      })
+
+      if (response.ok) {
+        fetchOrders() // Refresh orders
+      } else {
+        const data = await response.json()
+        alert(`Failed to approve quote: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('Error approving quote:', error)
+      alert('An error occurred')
+    }
+  }
+
+  const handleRejectQuote = async (orderId: string) => {
+    const reason = prompt('Please provide a reason for rejecting this quote (minimum 10 characters):')
+    if (!reason || reason.trim().length < 10) {
+      alert('Rejection reason must be at least 10 characters')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/orders/${orderId}/approve-quote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approved: false, rejectionReason: reason })
+      })
+
+      if (response.ok) {
+        fetchOrders() // Refresh orders
+      } else {
+        const data = await response.json()
+        alert(`Failed to reject quote: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('Error rejecting quote:', error)
+      alert('An error occurred')
+    }
+  }
+
   const getStatusColor = (status: string) => {
     const colors = {
+      QUOTE_REQUESTED: 'bg-yellow-100 text-yellow-800',
+      QUOTE_PROVIDED: 'bg-blue-100 text-blue-800',
+      QUOTE_APPROVED: 'bg-green-100 text-green-800',
+      QUOTE_REJECTED: 'bg-red-100 text-red-800',
       PENDING: 'bg-yellow-100 text-yellow-800',
       ACKNOWLEDGED: 'bg-blue-100 text-blue-800',
       IN_PROGRESS: 'bg-purple-100 text-purple-800',
@@ -59,6 +113,10 @@ export default function ClientDashboard() {
 
   const getStatusText = (status: string) => {
     const texts = {
+      QUOTE_REQUESTED: 'Awaiting Quote',
+      QUOTE_PROVIDED: 'Quote Ready for Review',
+      QUOTE_APPROVED: 'Quote Approved',
+      QUOTE_REJECTED: 'Quote Rejected',
       PENDING: 'Pending Lab Review',
       ACKNOWLEDGED: 'Lab Acknowledged',
       IN_PROGRESS: 'Testing in Progress',
@@ -130,27 +188,73 @@ export default function ClientDashboard() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600">Submitted</p>
-                        <p className="font-medium">{formatDate(order.createdAt)}</p>
+                    <div className="space-y-4">
+                      <div className="grid md:grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600">Submitted</p>
+                          <p className="font-medium">{formatDate(order.createdAt)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Quoted Price</p>
+                          <p className="font-medium">
+                            {order.quotedPrice ? formatCurrency(order.quotedPrice) : 'Awaiting quote'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Results</p>
+                          {order.status === 'COMPLETED' && order.attachments.length > 0 ? (
+                            <Button size="sm" variant="outline">
+                              Download Results
+                            </Button>
+                          ) : (
+                            <p className="text-gray-500">Not available</p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Quoted Price</p>
-                        <p className="font-medium">
-                          {order.quotedPrice ? formatCurrency(order.quotedPrice) : 'Pending'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Results</p>
-                        {order.status === 'COMPLETED' && order.attachments.length > 0 ? (
-                          <Button size="sm" variant="outline">
-                            Download Results
-                          </Button>
-                        ) : (
-                          <p className="text-gray-500">Not available</p>
-                        )}
-                      </div>
+
+                      {/* Quote Details */}
+                      {order.status === 'QUOTE_PROVIDED' && order.quotedPrice && (
+                        <div className="border-t pt-4">
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex justify-between items-start mb-4">
+                              <div>
+                                <p className="font-semibold text-blue-900">Quote Ready for Review</p>
+                                <p className="text-sm text-blue-700 mt-1">
+                                  Lab has provided a quote of {formatCurrency(order.quotedPrice)}
+                                </p>
+                                {order.quotedAt && (
+                                  <p className="text-xs text-blue-600 mt-1">
+                                    Quoted on {formatDate(order.quotedAt)}
+                                  </p>
+                                )}
+                                {order.quoteNotes && (
+                                  <div className="mt-2">
+                                    <p className="text-sm font-medium text-blue-900">Notes from lab:</p>
+                                    <p className="text-sm text-blue-800 mt-1">{order.quoteNotes}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleApproveQuote(order.id)}
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                              >
+                                Approve Quote
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleRejectQuote(order.id)}
+                                className="border-red-300 text-red-700 hover:bg-red-50"
+                              >
+                                Reject Quote
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
