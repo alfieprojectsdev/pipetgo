@@ -10,6 +10,49 @@ const updateOrderSchema = z.object({
   resultFileName: z.string().optional(),
 })
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: params.id },
+      include: {
+        service: { select: { name: true, category: true } },
+        lab: { select: { name: true, ownerId: true } },
+        client: { select: { name: true, email: true } }
+      }
+    })
+
+    if (!order) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+    }
+
+    // Check authorization: client can view their orders, lab admin can view their lab's orders, admin can view all
+    const canView =
+      session.user.role === 'ADMIN' ||
+      order.clientId === session.user.id ||
+      (session.user.role === 'LAB_ADMIN' && order.lab.ownerId === session.user.id)
+
+    if (!canView) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    return NextResponse.json(order)
+  } catch (error) {
+    console.error('Error fetching order:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }

@@ -83,6 +83,9 @@ export default function LabDashboard() {
 
   const getStatusColor = (status: string) => {
     const colors = {
+      QUOTE_REQUESTED: 'bg-yellow-100 text-yellow-800',
+      QUOTE_PROVIDED: 'bg-blue-100 text-blue-800',
+      QUOTE_REJECTED: 'bg-red-100 text-red-800',
       PENDING: 'bg-yellow-100 text-yellow-800',
       ACKNOWLEDGED: 'bg-blue-100 text-blue-800',
       IN_PROGRESS: 'bg-purple-100 text-purple-800',
@@ -94,6 +97,15 @@ export default function LabDashboard() {
 
   const getNextActions = (order: Order) => {
     switch (order.status) {
+      case 'QUOTE_REQUESTED':
+        return (
+          <Button
+            size="sm"
+            onClick={() => window.location.href = `/dashboard/lab/orders/${order.id}/quote`}
+          >
+            Provide Quote
+          </Button>
+        )
       case 'PENDING':
         return (
           <Button
