@@ -123,23 +123,25 @@ model LabService {
 }
 
 model Order {
-  id                  String      @id @default(cuid())
-  clientId            String
-  labId               String
-  serviceId           String
-  status              OrderStatus @default(QUOTE_REQUESTED)
-  clientDetails       Json
-  sampleDescription   String
-  specialInstructions String?
-  quotedPrice         Decimal?
-  quotedAt            DateTime?
-  quoteNotes          String?
-  quoteRejectedAt     DateTime?
-  quoteRejectedReason String?
-  acknowledgedAt      DateTime?
-  completedAt         DateTime?
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+  id                     String      @id @default(cuid())
+  clientId               String
+  labId                  String
+  serviceId              String
+  status                 OrderStatus @default(QUOTE_REQUESTED)
+  clientDetails          Json
+  sampleDescription      String
+  specialInstructions    String?
+  quotedPrice            Decimal?
+  quotedAt               DateTime?
+  quoteNotes             String?
+  estimatedTurnaroundDays Int?
+  quoteApprovedAt        DateTime?
+  quoteRejectedAt        DateTime?
+  quoteRejectedReason    String?
+  acknowledgedAt         DateTime?
+  completedAt            DateTime?
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
 
   client      User         @relation("ClientOrders", fields: [clientId], references: [id])
   lab         Lab          @relation(fields: [labId], references: [id])
