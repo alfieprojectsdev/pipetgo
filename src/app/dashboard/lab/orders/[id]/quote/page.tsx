@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { toast } from 'sonner'
 
 interface OrderDetails {
   id: string
@@ -94,8 +95,15 @@ export default function QuoteProvisionPage({ params }: { params: { id: string } 
         throw new Error(data.error || 'Failed to submit quote')
       }
 
-      router.push('/dashboard/lab')
-      router.refresh()
+      toast.success('Quote submitted successfully', {
+        description: 'The client will be notified of your quote.'
+      })
+
+      // Delay redirect to allow toast announcement
+      setTimeout(() => {
+        router.push('/dashboard/lab')
+        router.refresh()
+      }, 1500)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -192,7 +200,7 @@ export default function QuoteProvisionPage({ params }: { params: { id: string } 
             {/* Quoted Price */}
             <div>
               <label htmlFor="quotedPrice" className="block font-medium mb-1">
-                Quoted Price (PHP) <span className="text-red-500">*</span>
+                Quoted Price (PHP) <span className="text-red-500" aria-label="required">*</span>
               </label>
               <input
                 type="number"
@@ -201,11 +209,15 @@ export default function QuoteProvisionPage({ params }: { params: { id: string } 
                 onChange={(e) => setQuotedPrice(e.target.value)}
                 step="0.01"
                 min="0"
-                className="w-full border rounded p-2"
+                required
+                aria-required="true"
+                aria-invalid={!!formErrors.quotedPrice}
+                aria-describedby={formErrors.quotedPrice ? "quotedPrice-error" : undefined}
+                className="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="e.g., 1500.00"
               />
               {formErrors.quotedPrice && (
-                <p className="text-sm text-red-600 mt-1">{formErrors.quotedPrice}</p>
+                <p id="quotedPrice-error" className="text-sm text-red-600 mt-1" role="alert">{formErrors.quotedPrice}</p>
               )}
             </div>
 
@@ -221,11 +233,13 @@ export default function QuoteProvisionPage({ params }: { params: { id: string } 
                 onChange={(e) => setEstimatedTurnaroundDays(e.target.value)}
                 min="1"
                 step="1"
-                className="w-full border rounded p-2"
+                aria-invalid={!!formErrors.estimatedTurnaroundDays}
+                aria-describedby={formErrors.estimatedTurnaroundDays ? "estimatedTurnaroundDays-error" : undefined}
+                className="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="e.g., 5"
               />
               {formErrors.estimatedTurnaroundDays && (
-                <p className="text-sm text-red-600 mt-1">{formErrors.estimatedTurnaroundDays}</p>
+                <p id="estimatedTurnaroundDays-error" className="text-sm text-red-600 mt-1" role="alert">{formErrors.estimatedTurnaroundDays}</p>
               )}
             </div>
 
@@ -239,7 +253,7 @@ export default function QuoteProvisionPage({ params }: { params: { id: string } 
                 value={quoteNotes}
                 onChange={(e) => setQuoteNotes(e.target.value)}
                 rows={4}
-                className="w-full border rounded p-2"
+                className="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Additional details, clarifications, or terms for this quote..."
               />
               <p className="text-sm text-gray-500 mt-1">

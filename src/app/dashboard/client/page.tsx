@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 interface Order {
@@ -24,6 +26,11 @@ export default function ClientDashboard() {
   const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false)
+  const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false)
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [rejectionError, setRejectionError] = useState('')
 
   useEffect(() => {
     if (status === 'loading') return
@@ -48,18 +55,24 @@ export default function ClientDashboard() {
     }
   }
 
-  const handleApproveQuote = async (orderId: string) => {
-    if (!confirm('Approve this quote and proceed with testing?')) return
+  const openApprovalDialog = (orderId: string) => {
+    setSelectedOrderId(orderId)
+    setApprovalDialogOpen(true)
+  }
+
+  const confirmApproval = async () => {
+    if (!selectedOrderId) return
 
     try {
-      const response = await fetch(`/api/orders/${orderId}/approve-quote`, {
+      const response = await fetch(`/api/orders/${selectedOrderId}/approve-quote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ approved: true })
       })
 
       if (response.ok) {
-        fetchOrders() // Refresh orders
+        setApprovalDialogOpen(false)
+        fetchOrders()
       } else {
         const data = await response.json()
         alert(`Failed to approve quote: ${data.error}`)
@@ -70,22 +83,31 @@ export default function ClientDashboard() {
     }
   }
 
-  const handleRejectQuote = async (orderId: string) => {
-    const reason = prompt('Please provide a reason for rejecting this quote (minimum 10 characters):')
-    if (!reason || reason.trim().length < 10) {
-      alert('Rejection reason must be at least 10 characters')
+  const openRejectionDialog = (orderId: string) => {
+    setSelectedOrderId(orderId)
+    setRejectionReason('')
+    setRejectionError('')
+    setRejectionDialogOpen(true)
+  }
+
+  const confirmRejection = async () => {
+    if (!selectedOrderId) return
+
+    if (rejectionReason.trim().length < 10) {
+      setRejectionError('Rejection reason must be at least 10 characters')
       return
     }
 
     try {
-      const response = await fetch(`/api/orders/${orderId}/approve-quote`, {
+      const response = await fetch(`/api/orders/${selectedOrderId}/approve-quote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ approved: false, rejectionReason: reason })
+        body: JSON.stringify({ approved: false, rejectionReason: rejectionReason })
       })
 
       if (response.ok) {
-        fetchOrders() // Refresh orders
+        setRejectionDialogOpen(false)
+        fetchOrders()
       } else {
         const data = await response.json()
         alert(`Failed to reject quote: ${data.error}`)
@@ -98,17 +120,17 @@ export default function ClientDashboard() {
 
   const getStatusColor = (status: string) => {
     const colors = {
-      QUOTE_REQUESTED: 'bg-yellow-100 text-yellow-800',
-      QUOTE_PROVIDED: 'bg-blue-100 text-blue-800',
-      QUOTE_APPROVED: 'bg-green-100 text-green-800',
-      QUOTE_REJECTED: 'bg-red-100 text-red-800',
-      PENDING: 'bg-yellow-100 text-yellow-800',
-      ACKNOWLEDGED: 'bg-blue-100 text-blue-800',
-      IN_PROGRESS: 'bg-purple-100 text-purple-800',
-      COMPLETED: 'bg-green-100 text-green-800',
-      CANCELLED: 'bg-red-100 text-red-800'
+      QUOTE_REQUESTED: 'bg-yellow-100 text-yellow-900',
+      QUOTE_PROVIDED: 'bg-blue-100 text-blue-900',
+      QUOTE_APPROVED: 'bg-green-100 text-green-900',
+      QUOTE_REJECTED: 'bg-red-100 text-red-900',
+      PENDING: 'bg-yellow-100 text-yellow-900',
+      ACKNOWLEDGED: 'bg-blue-100 text-blue-900',
+      IN_PROGRESS: 'bg-purple-100 text-purple-900',
+      COMPLETED: 'bg-green-100 text-green-900',
+      CANCELLED: 'bg-red-100 text-red-900'
     }
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800'
+    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-900'
   }
 
   const getStatusText = (status: string) => {
@@ -129,6 +151,8 @@ export default function ClientDashboard() {
   if (status === 'loading' || isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
   }
+
+  const selectedOrder = orders.find(o => o.id === selectedOrderId)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -238,16 +262,16 @@ export default function ClientDashboard() {
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
-                                onClick={() => handleApproveQuote(order.id)}
-                                className="bg-green-600 hover:bg-green-700 text-white"
+                                onClick={() => openApprovalDialog(order.id)}
+                                className="bg-green-600 hover:bg-green-700 text-white focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
                               >
                                 Approve Quote
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleRejectQuote(order.id)}
-                                className="border-red-300 text-red-700 hover:bg-red-50"
+                                onClick={() => openRejectionDialog(order.id)}
+                                className="border-red-300 text-red-700 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
                               >
                                 Reject Quote
                               </Button>
@@ -299,6 +323,69 @@ export default function ClientDashboard() {
           </Card>
         </div>
       </main>
+
+      {/* Approval Dialog */}
+      <Dialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Approve Quote</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to approve this quote for {selectedOrder && selectedOrder.quotedPrice && formatCurrency(selectedOrder.quotedPrice)}
+              and proceed with testing?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApprovalDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
+              onClick={confirmApproval}
+            >
+              Approve Quote
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rejection Dialog */}
+      <Dialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Quote</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this quote (minimum 10 characters)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              id="rejectionReason"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Enter your reason for rejection..."
+              rows={4}
+              aria-describedby={rejectionError ? "rejection-error" : undefined}
+              aria-invalid={!!rejectionError}
+            />
+            {rejectionError && (
+              <p id="rejection-error" className="text-sm text-red-600 mt-1" role="alert">
+                {rejectionError}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectionDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmRejection}
+            >
+              Reject Quote
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

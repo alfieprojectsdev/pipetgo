@@ -83,16 +83,16 @@ export default function LabDashboard() {
 
   const getStatusColor = (status: string) => {
     const colors = {
-      QUOTE_REQUESTED: 'bg-yellow-100 text-yellow-800',
-      QUOTE_PROVIDED: 'bg-blue-100 text-blue-800',
-      QUOTE_REJECTED: 'bg-red-100 text-red-800',
-      PENDING: 'bg-yellow-100 text-yellow-800',
-      ACKNOWLEDGED: 'bg-blue-100 text-blue-800',
-      IN_PROGRESS: 'bg-purple-100 text-purple-800',
-      COMPLETED: 'bg-green-100 text-green-800',
-      CANCELLED: 'bg-red-100 text-red-800'
+      QUOTE_REQUESTED: 'bg-yellow-100 text-yellow-900',
+      QUOTE_PROVIDED: 'bg-blue-100 text-blue-900',
+      QUOTE_REJECTED: 'bg-red-100 text-red-900',
+      PENDING: 'bg-yellow-100 text-yellow-900',
+      ACKNOWLEDGED: 'bg-blue-100 text-blue-900',
+      IN_PROGRESS: 'bg-purple-100 text-purple-900',
+      COMPLETED: 'bg-green-100 text-green-900',
+      CANCELLED: 'bg-red-100 text-red-900'
     }
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800'
+    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-900'
   }
 
   const getNextActions = (order: Order) => {
