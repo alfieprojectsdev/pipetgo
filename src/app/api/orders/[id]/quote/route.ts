@@ -59,32 +59,62 @@ export async function POST(
       )
     }
 
-    // 5. Verify order is in correct status
-    if (order.status !== 'QUOTE_REQUESTED') {
-      return NextResponse.json(
-        { error: 'Quote can only be provided for orders with status QUOTE_REQUESTED' },
-        { status: 400 }
-      )
-    }
+    // 5. Update order with quote using transaction (P0-1, P0-3)
+    // Use atomic updateMany to prevent race condition + ensure data integrity
+    const result = await prisma.$transaction(async (tx) => {
+      // Atomic update - only succeeds if status is QUOTE_REQUESTED
+      const updateResult = await tx.order.updateMany({
+        where: {
+          id: params.id,
+          status: 'QUOTE_REQUESTED'  // ✅ Atomic check + update (prevents race condition)
+        },
+        data: {
+          quotedPrice: validatedData.quotedPrice,
+          quotedAt: new Date(),
+          status: 'QUOTE_PROVIDED',
+          quoteNotes: validatedData.quoteNotes,
+          estimatedTurnaroundDays: validatedData.estimatedTurnaroundDays
+        }
+      })
 
-    // 6. Update order with quote
-    const updatedOrder = await prisma.order.update({
-      where: { id: params.id },
-      data: {
-        quotedPrice: validatedData.quotedPrice,
-        quotedAt: new Date(),
-        status: 'QUOTE_PROVIDED',
-        quoteNotes: validatedData.quoteNotes,
-        estimatedTurnaroundDays: validatedData.estimatedTurnaroundDays
-      },
-      include: {
-        service: true,
-        lab: true,
-        client: true
+      // Check if update actually happened
+      if (updateResult.count === 0) {
+        // Either order doesn't exist OR status was already changed (race condition)
+        const order = await tx.order.findUnique({
+          where: { id: params.id },
+          select: { status: true }
+        })
+
+        if (!order) {
+          throw new Error('ORDER_NOT_FOUND')
+        }
+
+        throw new Error(`QUOTE_ALREADY_PROVIDED:${order.status}`)
       }
+
+      // Fetch updated order with includes
+      const updatedOrder = await tx.order.findUnique({
+        where: { id: params.id },
+        include: {
+          service: true,
+          lab: true,
+          client: true
+        }
+      })
+
+      // TODO (Future): Create notification record in same transaction
+      // await tx.notification.create({
+      //   data: {
+      //     userId: updatedOrder.clientId,
+      //     type: 'QUOTE_PROVIDED',
+      //     orderId: updatedOrder.id
+      //   }
+      // })
+
+      return updatedOrder
     })
 
-    return NextResponse.json(updatedOrder, { status: 200 })
+    return NextResponse.json(result, { status: 200 })
 
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -95,6 +125,21 @@ export async function POST(
         },
         { status: 400 }
       )
+    }
+
+    // Handle transaction errors
+    if (error instanceof Error) {
+      if (error.message === 'ORDER_NOT_FOUND') {
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+      }
+
+      if (error.message.startsWith('QUOTE_ALREADY_PROVIDED:')) {
+        const currentStatus = error.message.split(':')[1]
+        return NextResponse.json(
+          { error: `Quote already provided (current status: ${currentStatus})` },
+          { status: 409 }  // 409 Conflict
+        )
+      }
     }
 
     console.error('Quote provision failed:', error)

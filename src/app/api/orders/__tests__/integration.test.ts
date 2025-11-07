@@ -21,8 +21,11 @@ vi.mock('@/lib/db', () => ({
     order: {
       create: vi.fn(),
       findFirst: vi.fn(),
-      update: vi.fn()
-    }
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn()
+    },
+    $transaction: vi.fn()
   }
 }))
 
@@ -105,10 +108,18 @@ describe('Quote Workflow Integration Tests', () => {
         quotedAt: new Date(),
         quoteNotes: 'Comprehensive pesticide screening panel',
         estimatedTurnaroundDays: 7,
-        status: 'QUOTE_PROVIDED'
+        status: 'QUOTE_PROVIDED',
+        service: quoteRequiredService,
+        lab: { id: 'lab-1', ownerId: 'lab-admin-1', name: 'BioAnalytica Lab' },
+        client: { id: 'client-1', name: 'Test Client', email: 'client@test.com' }
       }
 
-      vi.mocked(prisma.order.update).mockResolvedValue(quotedOrder as any)
+      // Mock transaction for quote provision
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 1 } as any)
+        vi.mocked(prisma.order.findUnique).mockResolvedValue(quotedOrder as any)
+        return callback(prisma)
+      })
 
       const quoteRequest = new NextRequest('http://localhost:3000/api/orders/order-1/quote', {
         method: 'POST',
@@ -142,7 +153,12 @@ describe('Quote Workflow Integration Tests', () => {
         quoteApprovedAt: new Date()
       }
 
-      vi.mocked(prisma.order.update).mockResolvedValue(approvedOrder as any)
+      // Mock transaction for quote approval
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 1 } as any)
+        vi.mocked(prisma.order.findUnique).mockResolvedValue(approvedOrder as any)
+        return callback(prisma)
+      })
 
       const approveRequest = new NextRequest('http://localhost:3000/api/orders/order-1/approve-quote', {
         method: 'POST',
@@ -178,11 +194,16 @@ describe('Quote Workflow Integration Tests', () => {
       const rejectedOrder = {
         ...orderWithQuote,
         status: 'QUOTE_REJECTED',
-        rejectionReason: 'Budget constraint - exceeds our allocated amount',
+        quoteRejectedReason: 'Budget constraint - exceeds our allocated amount',
         quoteRejectedAt: new Date()
       }
 
-      vi.mocked(prisma.order.update).mockResolvedValue(rejectedOrder as any)
+      // Mock transaction for quote rejection
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 1 } as any)
+        vi.mocked(prisma.order.findUnique).mockResolvedValue(rejectedOrder as any)
+        return callback(prisma)
+      })
 
       const rejectRequest = new NextRequest('http://localhost:3000/api/orders/order-2/approve-quote', {
         method: 'POST',
@@ -197,7 +218,7 @@ describe('Quote Workflow Integration Tests', () => {
 
       expect(rejectResponse.status).toBe(200)
       expect(rejectData.status).toBe('QUOTE_REJECTED')
-      expect(rejectData.rejectionReason).toBe('Budget constraint - exceeds our allocated amount')
+      expect(rejectData.quoteRejectedReason).toBe('Budget constraint - exceeds our allocated amount')
     })
   })
 
@@ -438,10 +459,18 @@ describe('Quote Workflow Integration Tests', () => {
         quotedPrice: 150000,  // Bulk discount applied
         quotedAt: new Date(),
         quoteNotes: 'Bulk discount applied: 100+ samples at ₱1,500 each',
-        status: 'QUOTE_PROVIDED'
+        status: 'QUOTE_PROVIDED',
+        service: hybridService,
+        lab: { ownerId: 'lab-admin-1', name: 'FlexLab' },
+        client: { id: 'client-1', name: 'Test Client', email: 'client@test.com' }
       }
 
-      vi.mocked(prisma.order.update).mockResolvedValue(customQuotedOrder as any)
+      // Mock transaction for quote provision
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 1 } as any)
+        vi.mocked(prisma.order.findUnique).mockResolvedValue(customQuotedOrder as any)
+        return callback(prisma)
+      })
 
       const provideQuoteRequest = new NextRequest('http://localhost:3000/api/orders/order-hybrid-3/quote', {
         method: 'POST',
@@ -474,7 +503,12 @@ describe('Quote Workflow Integration Tests', () => {
         quoteApprovedAt: new Date()
       }
 
-      vi.mocked(prisma.order.update).mockResolvedValue(finalOrder as any)
+      // Mock transaction for quote approval
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 1 } as any)
+        vi.mocked(prisma.order.findUnique).mockResolvedValue(finalOrder as any)
+        return callback(prisma)
+      })
 
       const approveRequest = new NextRequest('http://localhost:3000/api/orders/order-hybrid-3/approve-quote', {
         method: 'POST',
@@ -554,6 +588,16 @@ describe('Quote Workflow Integration Tests', () => {
         lab: { ownerId: 'lab-admin-1' }
       } as any)
 
+      // Mock transaction to simulate race condition (updateMany returns 0)
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 0 } as any)  // Race condition
+        vi.mocked(prisma.order.findUnique).mockResolvedValue({
+          id: 'order-1',
+          status: 'QUOTE_PROVIDED'
+        } as any)
+        return callback(prisma)
+      })
+
       const request = new NextRequest('http://localhost:3000/api/orders/order-1/quote', {
         method: 'POST',
         body: JSON.stringify({ quotedPrice: 5000 })
@@ -562,8 +606,8 @@ describe('Quote Workflow Integration Tests', () => {
       const response = await provideQuote(request, { params: { id: 'order-1' } })
       const data = await response.json()
 
-      expect(response.status).toBe(400)
-      expect(data.error).toContain('only be provided for orders with status QUOTE_REQUESTED')
+      expect(response.status).toBe(409)  // 409 Conflict for race condition
+      expect(data.error).toContain('Quote already provided')
     })
 
     it('should prevent approving quote that has not been provided', async () => {
@@ -577,6 +621,16 @@ describe('Quote Workflow Integration Tests', () => {
         clientId: 'client-1'
       } as any)
 
+      // Mock transaction to simulate race condition (updateMany returns 0)
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 0 } as any)  // Race condition
+        vi.mocked(prisma.order.findUnique).mockResolvedValue({
+          id: 'order-1',
+          status: 'QUOTE_REQUESTED'
+        } as any)
+        return callback(prisma)
+      })
+
       const request = new NextRequest('http://localhost:3000/api/orders/order-1/approve-quote', {
         method: 'POST',
         body: JSON.stringify({ approved: true })
@@ -585,8 +639,8 @@ describe('Quote Workflow Integration Tests', () => {
       const response = await approveQuote(request, { params: { id: 'order-1' } })
       const data = await response.json()
 
-      expect(response.status).toBe(400)
-      expect(data.error).toContain('can only be approved or rejected for orders with status QUOTE_PROVIDED')
+      expect(response.status).toBe(409)  // 409 Conflict for invalid state
+      expect(data.error).toContain('Quote can only be approved/rejected when status is QUOTE_PROVIDED')
     })
 
     it('should prevent requesting custom quote for non-HYBRID services', async () => {

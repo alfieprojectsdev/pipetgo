@@ -22,8 +22,11 @@ vi.mock('@/lib/db', () => ({
     order: {
       create: vi.fn(),
       findFirst: vi.fn(),
-      update: vi.fn()
-    }
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn()
+    },
+    $transaction: vi.fn()
   }
 }))
 
@@ -137,7 +140,13 @@ describe('E2E: Quote Workflow', () => {
 
       vi.mocked(getServerSession).mockResolvedValue(labAdminSession as any)
       vi.mocked(prisma.order.findFirst).mockResolvedValue(orderAwaitingQuote as any)
-      vi.mocked(prisma.order.update).mockResolvedValue(orderWithQuote as any)
+
+      // Mock transaction for quote provision
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 1 } as any)
+        vi.mocked(prisma.order.findUnique).mockResolvedValue(orderWithQuote as any)
+        return callback(prisma)
+      })
 
       const quoteRequest = new NextRequest('http://localhost:3000/api/orders/order-1/quote', {
         method: 'POST',
@@ -190,7 +199,13 @@ describe('E2E: Quote Workflow', () => {
 
       vi.mocked(getServerSession).mockResolvedValue(clientSession as any)
       vi.mocked(prisma.order.findFirst).mockResolvedValue(orderWithQuoteProvided as any)
-      vi.mocked(prisma.order.update).mockResolvedValue(approvedOrder as any)
+
+      // Mock transaction for quote approval
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 1 } as any)
+        vi.mocked(prisma.order.findUnique).mockResolvedValue(approvedOrder as any)
+        return callback(prisma)
+      })
 
       const approveRequest = new NextRequest('http://localhost:3000/api/orders/order-1/approve-quote', {
         method: 'POST',
@@ -389,7 +404,13 @@ describe('E2E: Quote Workflow', () => {
 
       vi.mocked(getServerSession).mockResolvedValue(labAdminSession as any)
       vi.mocked(prisma.order.findFirst).mockResolvedValue(orderAwaitingQuote as any)
-      vi.mocked(prisma.order.update).mockResolvedValue(orderWithCustomQuote as any)
+
+      // Mock transaction for quote provision
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 1 } as any)
+        vi.mocked(prisma.order.findUnique).mockResolvedValue(orderWithCustomQuote as any)
+        return callback(prisma)
+      })
 
       const quoteRequest = new NextRequest('http://localhost:3000/api/orders/order-3/quote', {
         method: 'POST',
@@ -426,7 +447,13 @@ describe('E2E: Quote Workflow', () => {
 
       vi.mocked(getServerSession).mockResolvedValue(clientSession as any)
       vi.mocked(prisma.order.findFirst).mockResolvedValue(orderReadyForApproval as any)
-      vi.mocked(prisma.order.update).mockResolvedValue(approvedCustomQuote as any)
+
+      // Mock transaction for quote approval
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 1 } as any)
+        vi.mocked(prisma.order.findUnique).mockResolvedValue(approvedCustomQuote as any)
+        return callback(prisma)
+      })
 
       const approveRequest = new NextRequest('http://localhost:3000/api/orders/order-3/approve-quote', {
         method: 'POST',
@@ -609,7 +636,13 @@ describe('E2E: Quote Workflow', () => {
 
       vi.mocked(getServerSession).mockResolvedValue(labAdminSession as any)
       vi.mocked(prisma.order.findFirst).mockResolvedValue(orderAwaitingQuote as any)
-      vi.mocked(prisma.order.update).mockResolvedValue(orderWithExpensiveQuote as any)
+
+      // Mock transaction for quote provision
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 1 } as any)
+        vi.mocked(prisma.order.findUnique).mockResolvedValue(orderWithExpensiveQuote as any)
+        return callback(prisma)
+      })
 
       const quoteRequest = new NextRequest('http://localhost:3000/api/orders/order-5/quote', {
         method: 'POST',
@@ -649,7 +682,13 @@ describe('E2E: Quote Workflow', () => {
 
       vi.mocked(getServerSession).mockResolvedValue(clientSession as any)
       vi.mocked(prisma.order.findFirst).mockResolvedValue(orderReadyForDecision as any)
-      vi.mocked(prisma.order.update).mockResolvedValue(rejectedOrder as any)
+
+      // Mock transaction for quote rejection
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 1 } as any)
+        vi.mocked(prisma.order.findUnique).mockResolvedValue(rejectedOrder as any)
+        return callback(prisma)
+      })
 
       const rejectRequest = new NextRequest('http://localhost:3000/api/orders/order-5/approve-quote', {
         method: 'POST',
@@ -668,13 +707,16 @@ describe('E2E: Quote Workflow', () => {
       expect(rejectData.rejectionReason).toBe('Price exceeds our allocated budget of ₱50,000 for this testing phase')
       expect(rejectData.quoteRejectedAt).toBeDefined()
 
-      // Verify rejection data persisted
-      expect(prisma.order.update).toHaveBeenCalledWith(
+      // Verify rejection data persisted (using atomic updateMany)
+      expect(prisma.order.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'order-5' },
+          where: expect.objectContaining({
+            id: 'order-5',
+            status: 'QUOTE_PROVIDED'  // Atomic check: only update if status is QUOTE_PROVIDED
+          }),
           data: expect.objectContaining({
             status: 'QUOTE_REJECTED',
-            rejectionReason: 'Price exceeds our allocated budget of ₱50,000 for this testing phase',
+            quoteRejectedReason: 'Price exceeds our allocated budget of ₱50,000 for this testing phase',
             quoteRejectedAt: expect.any(Date)
           })
         })

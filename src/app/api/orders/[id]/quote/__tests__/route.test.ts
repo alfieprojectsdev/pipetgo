@@ -14,8 +14,11 @@ vi.mock('@/lib/db', () => ({
   prisma: {
     order: {
       findFirst: vi.fn(),
-      update: vi.fn()
-    }
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn()
+    },
+    $transaction: vi.fn()
   }
 }))
 
@@ -104,6 +107,20 @@ describe('POST /api/orders/[id]/quote', () => {
         lab: { id: 'lab-1', ownerId: 'lab-admin-1' }
       } as any)
 
+      // Mock transaction to simulate race condition check
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        // Mock updateMany returning 0 (no rows updated because status doesn't match)
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 0 } as any)
+
+        // Mock findUnique returning order with current status
+        vi.mocked(prisma.order.findUnique).mockResolvedValue({
+          id: 'order-1',
+          status: 'QUOTE_PROVIDED'
+        } as any)
+
+        return callback(prisma)
+      })
+
       const request = new NextRequest('http://localhost:3000/api/orders/order-1/quote', {
         method: 'POST',
         body: JSON.stringify({ quotedPrice: 5000 })
@@ -112,8 +129,9 @@ describe('POST /api/orders/[id]/quote', () => {
       const response = await POST(request, { params: { id: 'order-1' } })
       const data = await response.json()
 
-      expect(response.status).toBe(400)
-      expect(data.error).toContain('only be provided for orders with status QUOTE_REQUESTED')
+      expect(response.status).toBe(409)
+      expect(data.error).toContain('Quote already provided')
+      expect(data.error).toContain('QUOTE_PROVIDED')
     })
   })
 
@@ -147,7 +165,16 @@ describe('POST /api/orders/[id]/quote', () => {
         status: 'QUOTE_PROVIDED'
       }
 
-      vi.mocked(prisma.order.update).mockResolvedValue(updatedOrder as any)
+      // Mock transaction to return updated order
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        // Mock updateMany returning 1 (success)
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 1 } as any)
+
+        // Mock findUnique returning updated order
+        vi.mocked(prisma.order.findUnique).mockResolvedValue(updatedOrder as any)
+
+        return callback(prisma)
+      })
 
       const request = new NextRequest('http://localhost:3000/api/orders/order-1/quote', {
         method: 'POST',
@@ -167,10 +194,13 @@ describe('POST /api/orders/[id]/quote', () => {
       expect(data.quoteNotes).toBe('Standard analysis for water sample')
       expect(data.estimatedTurnaroundDays).toBe(5)
 
-      // Verify update was called with correct data
-      expect(prisma.order.update).toHaveBeenCalledWith(
+      // Verify updateMany was called with atomic check
+      expect(prisma.order.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'order-1' },
+          where: expect.objectContaining({
+            id: 'order-1',
+            status: 'QUOTE_REQUESTED'  // Atomic status check
+          }),
           data: expect.objectContaining({
             quotedPrice: 5000,
             quotedAt: expect.any(Date),
@@ -203,7 +233,12 @@ describe('POST /api/orders/[id]/quote', () => {
         status: 'QUOTE_PROVIDED'
       }
 
-      vi.mocked(prisma.order.update).mockResolvedValue(updatedOrder as any)
+      // Mock transaction
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 1 } as any)
+        vi.mocked(prisma.order.findUnique).mockResolvedValue(updatedOrder as any)
+        return callback(prisma)
+      })
 
       const request = new NextRequest('http://localhost:3000/api/orders/order-2/quote', {
         method: 'POST',

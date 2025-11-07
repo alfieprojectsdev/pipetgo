@@ -14,8 +14,11 @@ vi.mock('@/lib/db', () => ({
   prisma: {
     order: {
       findFirst: vi.fn(),
-      update: vi.fn()
-    }
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn()
+    },
+    $transaction: vi.fn()
   }
 }))
 
@@ -103,6 +106,20 @@ describe('POST /api/orders/[id]/approve-quote', () => {
         serviceId: 'service-1'
       } as any)
 
+      // Mock transaction to simulate race condition check
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        // Mock updateMany returning 0 (no rows updated because status doesn't match)
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 0 } as any)
+
+        // Mock findUnique returning order with current status
+        vi.mocked(prisma.order.findUnique).mockResolvedValue({
+          id: 'order-1',
+          status: 'QUOTE_REQUESTED'
+        } as any)
+
+        return callback(prisma)
+      })
+
       const request = new NextRequest('http://localhost:3000/api/orders/order-1/approve-quote', {
         method: 'POST',
         body: JSON.stringify({ approved: true })
@@ -111,8 +128,9 @@ describe('POST /api/orders/[id]/approve-quote', () => {
       const response = await POST(request, { params: { id: 'order-1' } })
       const data = await response.json()
 
-      expect(response.status).toBe(400)
-      expect(data.error).toContain('can only be approved or rejected for orders with status QUOTE_PROVIDED')
+      expect(response.status).toBe(409)
+      expect(data.error).toContain('can only be approved/rejected when status is QUOTE_PROVIDED')
+      expect(data.error).toContain('QUOTE_REQUESTED')
     })
   })
 
@@ -131,8 +149,9 @@ describe('POST /api/orders/[id]/approve-quote', () => {
         quotedPrice: 5000,
         quotedAt: new Date('2025-11-01T10:00:00Z'),
         client: { id: 'client-1', name: 'Test Client', email: 'client@test.com' },
-        lab: { id: 'lab-1', name: 'Test Lab' },
-        service: { id: 'service-1', name: 'pH Testing' }
+        lab: { id: 'lab-1', name: 'Test Lab', ownerId: 'lab-admin-1' },
+        service: { id: 'service-1', name: 'pH Testing', category: 'Water Quality' },
+        attachments: []
       }
 
       vi.mocked(prisma.order.findFirst).mockResolvedValue(mockOrder as any)
@@ -143,7 +162,12 @@ describe('POST /api/orders/[id]/approve-quote', () => {
         quoteApprovedAt: new Date()
       }
 
-      vi.mocked(prisma.order.update).mockResolvedValue(updatedOrder as any)
+      // Mock transaction
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 1 } as any)
+        vi.mocked(prisma.order.findUnique).mockResolvedValue(updatedOrder as any)
+        return callback(prisma)
+      })
 
       const request = new NextRequest('http://localhost:3000/api/orders/order-1/approve-quote', {
         method: 'POST',
@@ -157,14 +181,17 @@ describe('POST /api/orders/[id]/approve-quote', () => {
       expect(data.status).toBe('PENDING')
       expect(data.quoteApprovedAt).toBeDefined()
 
-      // Verify update was called with correct data
-      expect(prisma.order.update).toHaveBeenCalledWith(
+      // Verify updateMany was called with atomic check
+      expect(prisma.order.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'order-1' },
+          where: expect.objectContaining({
+            id: 'order-1',
+            status: 'QUOTE_PROVIDED'  // Atomic status check
+          }),
           data: expect.objectContaining({
             status: 'PENDING',
             quoteApprovedAt: expect.any(Date),
-            rejectionReason: null
+            quoteRejectedReason: null
           })
         })
       )
@@ -184,7 +211,11 @@ describe('POST /api/orders/[id]/approve-quote', () => {
         labId: 'lab-1',
         serviceId: 'service-1',
         quotedPrice: 10000,
-        quotedAt: new Date('2025-11-01T10:00:00Z')
+        quotedAt: new Date('2025-11-01T10:00:00Z'),
+        client: { id: 'client-1', name: 'Test Client', email: 'client@test.com' },
+        lab: { id: 'lab-1', name: 'Test Lab', ownerId: 'lab-admin-1' },
+        service: { id: 'service-1', name: 'pH Testing', category: 'Water Quality' },
+        attachments: []
       }
 
       vi.mocked(prisma.order.findFirst).mockResolvedValue(mockOrder as any)
@@ -192,11 +223,16 @@ describe('POST /api/orders/[id]/approve-quote', () => {
       const updatedOrder = {
         ...mockOrder,
         status: 'QUOTE_REJECTED',
-        rejectionReason: 'Price exceeds our budget constraints',
+        quoteRejectedReason: 'Price exceeds our budget constraints',
         quoteRejectedAt: new Date()
       }
 
-      vi.mocked(prisma.order.update).mockResolvedValue(updatedOrder as any)
+      // Mock transaction
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        vi.mocked(prisma.order.updateMany).mockResolvedValue({ count: 1 } as any)
+        vi.mocked(prisma.order.findUnique).mockResolvedValue(updatedOrder as any)
+        return callback(prisma)
+      })
 
       const request = new NextRequest('http://localhost:3000/api/orders/order-2/approve-quote', {
         method: 'POST',
@@ -211,16 +247,19 @@ describe('POST /api/orders/[id]/approve-quote', () => {
 
       expect(response.status).toBe(200)
       expect(data.status).toBe('QUOTE_REJECTED')
-      expect(data.rejectionReason).toBe('Price exceeds our budget constraints')
+      expect(data.quoteRejectedReason).toBe('Price exceeds our budget constraints')
       expect(data.quoteRejectedAt).toBeDefined()
 
-      // Verify update was called with correct data
-      expect(prisma.order.update).toHaveBeenCalledWith(
+      // Verify updateMany was called with atomic check
+      expect(prisma.order.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'order-2' },
+          where: expect.objectContaining({
+            id: 'order-2',
+            status: 'QUOTE_PROVIDED'  // Atomic status check
+          }),
           data: expect.objectContaining({
             status: 'QUOTE_REJECTED',
-            rejectionReason: 'Price exceeds our budget constraints',
+            quoteRejectedReason: 'Price exceeds our budget constraints',
             quoteRejectedAt: expect.any(Date)
           })
         })

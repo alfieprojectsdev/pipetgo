@@ -66,21 +66,12 @@ export async function POST(
       )
     }
 
-    // 4. State machine validation: Can only approve/reject QUOTE_PROVIDED orders
-    if (order.status !== 'QUOTE_PROVIDED') {
-      return NextResponse.json(
-        {
-          error: `Quote can only be approved or rejected for orders with status QUOTE_PROVIDED (current: ${order.status})`
-        },
-        { status: 400 }
-      )
-    }
-
-    // 5. Parse and validate request body
+    // 4. Parse and validate request body
     const body = await request.json()
     const validatedData = approveQuoteSchema.parse(body)
 
-    // 6. Update order based on approval decision
+    // 5. Update order based on approval decision using transaction (P0-2, P0-3)
+    // Use atomic updateMany to prevent race condition + ensure data integrity
     let updateData: any
 
     if (validatedData.approved) {
@@ -88,31 +79,65 @@ export async function POST(
       updateData = {
         status: 'PENDING',
         quoteApprovedAt: new Date(),
-        rejectionReason: null  // Clear any previous rejection reason
+        quoteRejectedReason: null  // Clear any previous rejection reason
       }
     } else {
       // Quote rejected: Transition to QUOTE_REJECTED
       updateData = {
         status: 'QUOTE_REJECTED',
-        rejectionReason: validatedData.rejectionReason,
+        quoteRejectedReason: validatedData.rejectionReason,
         quoteRejectedAt: new Date()
       }
     }
 
-    const updatedOrder = await prisma.order.update({
-      where: { id: params.id },
-      data: updateData,
-      include: {
-        service: { select: { name: true, category: true } },
-        lab: { select: { name: true } },
-        client: { select: { name: true, email: true } },
-        attachments: true
+    const result = await prisma.$transaction(async (tx) => {
+      // Atomic update - only succeeds if status is QUOTE_PROVIDED
+      const updateResult = await tx.order.updateMany({
+        where: {
+          id: params.id,
+          status: 'QUOTE_PROVIDED'  // ✅ Atomic check + update (prevents race condition)
+        },
+        data: updateData
+      })
+
+      // Check if update actually happened
+      if (updateResult.count === 0) {
+        const order = await tx.order.findUnique({
+          where: { id: params.id },
+          select: { status: true }
+        })
+
+        if (!order) {
+          throw new Error('ORDER_NOT_FOUND')
+        }
+
+        throw new Error(`INVALID_STATUS:${order.status}`)
       }
+
+      // Fetch updated order with includes
+      const updatedOrder = await tx.order.findUnique({
+        where: { id: params.id },
+        include: {
+          service: { select: { name: true, category: true } },
+          lab: { select: { name: true, ownerId: true } },
+          client: { select: { name: true, email: true } },
+          attachments: true
+        }
+      })
+
+      // TODO (Future): Create notification in same transaction
+      // await tx.notification.create({
+      //   data: {
+      //     userId: updatedOrder.lab.ownerId,
+      //     type: validatedData.approved ? 'QUOTE_APPROVED' : 'QUOTE_REJECTED',
+      //     orderId: updatedOrder.id
+      //   }
+      // })
+
+      return updatedOrder
     })
 
-    // TODO (Session 2): Send notification to lab admin about approval/rejection
-
-    return NextResponse.json(updatedOrder, { status: 200 })
+    return NextResponse.json(result, { status: 200 })
 
   } catch (error) {
     console.error('Error approving/rejecting quote:', error)
@@ -122,6 +147,21 @@ export async function POST(
         { error: 'Validation error', details: error.errors },
         { status: 400 }
       )
+    }
+
+    // Handle transaction errors
+    if (error instanceof Error) {
+      if (error.message === 'ORDER_NOT_FOUND') {
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+      }
+
+      if (error.message.startsWith('INVALID_STATUS:')) {
+        const currentStatus = error.message.split(':')[1]
+        return NextResponse.json(
+          { error: `Quote can only be approved/rejected when status is QUOTE_PROVIDED (current status: ${currentStatus})` },
+          { status: 409 }
+        )
+      }
     }
 
     return NextResponse.json(
