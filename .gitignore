@@ -34,3 +34,6 @@ coverage/
 
 # Storybook
 storybook-static/
+
+# Claude Code logs
+claude_*.log

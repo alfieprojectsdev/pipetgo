@@ -1,3 +1,4 @@
+<!-- docs/PHASE5_E2E_TESTS_SUMMARY.md -->
 # Phase 5: E2E Quote Workflow Tests - Implementation Summary
 
 **Date:** 2025-11-06
