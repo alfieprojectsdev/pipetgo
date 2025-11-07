@@ -1,231 +1,205 @@
-import { newDb, IMemoryDb, DataType } from 'pg-mem'
-import { PrismaClient } from '@prisma/client'
+/**
+ * Mock Database Factory (In-Memory Mock)
+ * =======================================
+ * Creates an in-memory mock of Prisma Client for fast, isolated testing.
+ *
+ * NOTE: pg-mem doesn't work with Prisma due to protocol incompatibility.
+ * This uses a simple in-memory data store with Prisma-compatible interface.
+ *
+ * For real PostgreSQL integration tests, use Testcontainers or live database.
+ */
 
-let mockDb: IMemoryDb | null = null
+import { PrismaClient, Prisma } from '@prisma/client'
+
+// In-memory data store
+const mockData = {
+  users: new Map<string, any>(),
+  labs: new Map<string, any>(),
+  labServices: new Map<string, any>(),
+  orders: new Map<string, any>(),
+  attachments: new Map<string, any>(),
+  accounts: new Map<string, any>(),
+  sessions: new Map<string, any>(),
+}
+
 let mockPrisma: PrismaClient | null = null
 
 /**
- * Creates a pg-mem in-memory PostgreSQL database instance with Prisma schema.
- * Uses singleton pattern to avoid recreating the database on multiple calls.
+ * Creates a mock Prisma client with in-memory data storage.
+ * This provides Prisma-compatible interface for testing without database.
  *
- * @returns Promise<PrismaClient> - Prisma client connected to pg-mem database
+ * @returns Promise<PrismaClient> - Mocked Prisma client
  */
 export async function createPrismaMock(): Promise<PrismaClient> {
   if (mockPrisma) {
     return mockPrisma
   }
 
-  // Create pg-mem instance with auto foreign key indices
-  mockDb = newDb({
-    autoCreateForeignKeyIndices: true,
-  })
-
-  // Register required PostgreSQL functions
-  mockDb.public.registerFunction({
-    name: 'current_database',
-    returns: DataType.text,
-    implementation: () => 'mock_db',
-  })
-
-  mockDb.public.registerFunction({
-    name: 'version',
-    returns: DataType.text,
-    implementation: () => 'PostgreSQL 15.0 (pg-mem)',
-  })
-
-  // Register cuid() function for ID generation
-  mockDb.public.registerFunction({
-    name: 'cuid',
-    returns: DataType.text,
-    implementation: () => {
-      // Simple CUID-like ID generator (timestamp + random)
-      const timestamp = Date.now().toString(36)
-      const randomPart = Math.random().toString(36).substring(2, 15)
-      return `c${timestamp}${randomPart}`
-    },
-  })
-
-  // Generate mock schema from Prisma schema
-  await generateMockSchema(mockDb)
-
-  // Bind pg-mem to a server
-  const { connectionSettings } = await mockDb.adapters.bindServer({
-    port: 0, // Random available port
-  })
-
-  // Construct PostgreSQL connection string
-  const connectionString = `postgresql://postgres:postgres@${connectionSettings.host}:${connectionSettings.port}/mock_db`
-
-  // Create Prisma client connected to pg-mem server
-  mockPrisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: connectionString,
+  // Create a partial mock that implements the methods we need
+  mockPrisma = {
+    user: {
+      createMany: async ({ data }: any) => {
+        const users = Array.isArray(data) ? data : [data]
+        users.forEach((user: any) => mockData.users.set(user.id, user))
+        return { count: users.length }
+      },
+      findMany: async () => Array.from(mockData.users.values()),
+      findUnique: async ({ where }: any) => {
+        if (where.id) return mockData.users.get(where.id) || null
+        if (where.email) {
+          const values = Array.from(mockData.users.values())
+          return values.find((u: any) => u.email === where.email) || null
+        }
+        return null
+      },
+      findFirst: async ({ where }: any) => {
+        const values = Array.from(mockData.users.values())
+        return values.find((u: any) => {
+          if (where.email) return u.email === where.email
+          if (where.id) return u.id === where.id
+          return false
+        }) || null
+      },
+      deleteMany: async () => {
+        const count = mockData.users.size
+        mockData.users.clear()
+        return { count }
       },
     },
-  })
+    lab: {
+      create: async ({ data }: any) => {
+        mockData.labs.set(data.id, data)
+        return data
+      },
+      findMany: async () => Array.from(mockData.labs.values()),
+      findUnique: async ({ where }: any) => mockData.labs.get(where.id) || null,
+      deleteMany: async () => {
+        const count = mockData.labs.size
+        mockData.labs.clear()
+        return { count }
+      },
+    },
+    labService: {
+      createMany: async ({ data }: any) => {
+        const services = Array.isArray(data) ? data : [data]
+        services.forEach((service: any) => mockData.labServices.set(service.id, service))
+        return { count: services.length }
+      },
+      findMany: async () => Array.from(mockData.labServices.values()),
+      findUnique: async ({ where }: any) => mockData.labServices.get(where.id) || null,
+      findFirst: async ({ where }: any) => {
+        const values = Array.from(mockData.labServices.values())
+        return values.find((s: any) => {
+          if (where.id) return s.id === where.id
+          if (where.pricingMode) return s.pricingMode === where.pricingMode
+          return false
+        }) || null
+      },
+      deleteMany: async () => {
+        const count = mockData.labServices.size
+        mockData.labServices.clear()
+        return { count }
+      },
+    },
+    order: {
+      create: async ({ data }: any) => {
+        const order = { ...data, id: data.id || `order-${Date.now()}`, createdAt: new Date(), updatedAt: new Date() }
+        mockData.orders.set(order.id, order)
+        return order
+      },
+      findMany: async () => Array.from(mockData.orders.values()),
+      findUnique: async ({ where }: any) => mockData.orders.get(where.id) || null,
+      update: async ({ where, data }: any) => {
+        const order = mockData.orders.get(where.id)
+        if (!order) throw new Error(`Order ${where.id} not found`)
+        // Wrap quotedPrice in Decimal-like object if it's a number
+        const processedData = { ...data }
+        if (typeof processedData.quotedPrice === 'number') {
+          const price = processedData.quotedPrice
+          processedData.quotedPrice = { toNumber: () => price }
+        }
+        const updated = { ...order, ...processedData, updatedAt: new Date() }
+        mockData.orders.set(where.id, updated)
+        return updated
+      },
+      deleteMany: async () => {
+        const count = mockData.orders.size
+        mockData.orders.clear()
+        return { count }
+      },
+    },
+    attachment: {
+      createMany: async ({ data }: any) => {
+        const attachments = Array.isArray(data) ? data : [data]
+        attachments.forEach((a: any) => mockData.attachments.set(a.id, a))
+        return { count: attachments.length }
+      },
+      findMany: async () => Array.from(mockData.attachments.values()),
+      deleteMany: async () => {
+        const count = mockData.attachments.size
+        mockData.attachments.clear()
+        return { count }
+      },
+    },
+    account: {
+      createMany: async ({ data }: any) => {
+        const accounts = Array.isArray(data) ? data : [data]
+        accounts.forEach((a: any) => mockData.accounts.set(a.id, a))
+        return { count: accounts.length }
+      },
+      deleteMany: async () => {
+        const count = mockData.accounts.size
+        mockData.accounts.clear()
+        return { count }
+      },
+    },
+    session: {
+      createMany: async ({ data }: any) => {
+        const sessions = Array.isArray(data) ? data : [data]
+        sessions.forEach((s: any) => mockData.sessions.set(s.id, s))
+        return { count: sessions.length }
+      },
+      deleteMany: async () => {
+        const count = mockData.sessions.size
+        mockData.sessions.clear()
+        return { count }
+      },
+    },
+    $connect: async () => {},
+    $disconnect: async () => {},
+  } as unknown as PrismaClient
 
-  // Connect to the mock database
-  await mockPrisma.$connect()
-
-  console.log('✅ pg-mem database initialized with Prisma schema')
+  console.log('✅ In-memory mock database initialized')
 
   return mockPrisma
-}
-
-/**
- * Generates the complete database schema matching prisma/schema.prisma.
- * Creates enums, tables, foreign keys, and constraints.
- *
- * @param db - pg-mem database instance
- */
-async function generateMockSchema(db: IMemoryDb): Promise<void> {
-  db.public.none(`
-    -- Create Enums
-    CREATE TYPE "UserRole" AS ENUM ('CLIENT', 'LAB_ADMIN', 'ADMIN');
-    CREATE TYPE "PricingMode" AS ENUM ('QUOTE_REQUIRED', 'FIXED', 'HYBRID');
-    CREATE TYPE "OrderStatus" AS ENUM (
-      'QUOTE_REQUESTED',
-      'QUOTE_PROVIDED',
-      'QUOTE_REJECTED',
-      'PENDING',
-      'ACKNOWLEDGED',
-      'IN_PROGRESS',
-      'COMPLETED',
-      'CANCELLED'
-    );
-
-    -- Users table
-    CREATE TABLE "users" (
-      "id" TEXT PRIMARY KEY DEFAULT cuid(),
-      "name" TEXT,
-      "email" TEXT NOT NULL UNIQUE,
-      "emailVerified" TIMESTAMP,
-      "image" TEXT,
-      "role" "UserRole" NOT NULL DEFAULT 'CLIENT',
-      "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
-      "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
-    );
-
-    -- Account table (NextAuth)
-    CREATE TABLE "Account" (
-      "id" TEXT PRIMARY KEY DEFAULT cuid(),
-      "userId" TEXT NOT NULL,
-      "type" TEXT NOT NULL,
-      "provider" TEXT NOT NULL,
-      "providerAccountId" TEXT NOT NULL,
-      "refresh_token" TEXT,
-      "access_token" TEXT,
-      "expires_at" INTEGER,
-      "token_type" TEXT,
-      "scope" TEXT,
-      "id_token" TEXT,
-      "session_state" TEXT,
-      CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE,
-      UNIQUE ("provider", "providerAccountId")
-    );
-
-    -- Session table (NextAuth)
-    CREATE TABLE "Session" (
-      "id" TEXT PRIMARY KEY DEFAULT cuid(),
-      "sessionToken" TEXT NOT NULL UNIQUE,
-      "userId" TEXT NOT NULL,
-      "expires" TIMESTAMP NOT NULL,
-      CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE
-    );
-
-    -- VerificationToken table (NextAuth)
-    CREATE TABLE "VerificationToken" (
-      "identifier" TEXT NOT NULL,
-      "token" TEXT NOT NULL UNIQUE,
-      "expires" TIMESTAMP NOT NULL,
-      UNIQUE ("identifier", "token")
-    );
-
-    -- Labs table
-    CREATE TABLE "labs" (
-      "id" TEXT PRIMARY KEY DEFAULT cuid(),
-      "ownerId" TEXT NOT NULL,
-      "name" TEXT NOT NULL,
-      "description" TEXT,
-      "location" JSONB,
-      "certifications" TEXT[] NOT NULL DEFAULT '{}',
-      "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
-      "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
-      CONSTRAINT "labs_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "users"("id")
-    );
-
-    -- LabService table
-    CREATE TABLE "lab_services" (
-      "id" TEXT PRIMARY KEY DEFAULT cuid(),
-      "labId" TEXT NOT NULL,
-      "name" TEXT NOT NULL,
-      "description" TEXT,
-      "category" TEXT NOT NULL,
-      "pricingMode" "PricingMode" NOT NULL DEFAULT 'QUOTE_REQUIRED',
-      "pricePerUnit" DECIMAL,
-      "unitType" TEXT NOT NULL DEFAULT 'per_sample',
-      "turnaroundDays" INTEGER,
-      "sampleRequirements" TEXT,
-      "active" BOOLEAN NOT NULL DEFAULT true,
-      "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
-      "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
-      CONSTRAINT "lab_services_labId_fkey" FOREIGN KEY ("labId") REFERENCES "labs"("id") ON DELETE CASCADE
-    );
-
-    -- Orders table
-    CREATE TABLE "orders" (
-      "id" TEXT PRIMARY KEY DEFAULT cuid(),
-      "clientId" TEXT NOT NULL,
-      "labId" TEXT NOT NULL,
-      "serviceId" TEXT NOT NULL,
-      "status" "OrderStatus" NOT NULL DEFAULT 'QUOTE_REQUESTED',
-      "clientDetails" JSONB NOT NULL,
-      "sampleDescription" TEXT NOT NULL,
-      "specialInstructions" TEXT,
-      "quotedPrice" DECIMAL,
-      "quotedAt" TIMESTAMP,
-      "quoteNotes" TEXT,
-      "estimatedTurnaroundDays" INTEGER,
-      "quoteApprovedAt" TIMESTAMP,
-      "quoteRejectedAt" TIMESTAMP,
-      "quoteRejectedReason" TEXT,
-      "acknowledgedAt" TIMESTAMP,
-      "completedAt" TIMESTAMP,
-      "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
-      "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
-      CONSTRAINT "orders_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "users"("id"),
-      CONSTRAINT "orders_labId_fkey" FOREIGN KEY ("labId") REFERENCES "labs"("id"),
-      CONSTRAINT "orders_serviceId_fkey" FOREIGN KEY ("serviceId") REFERENCES "lab_services"("id")
-    );
-
-    -- Attachments table
-    CREATE TABLE "attachments" (
-      "id" TEXT PRIMARY KEY DEFAULT cuid(),
-      "orderId" TEXT NOT NULL,
-      "uploadedById" TEXT NOT NULL,
-      "fileName" TEXT NOT NULL,
-      "fileUrl" TEXT NOT NULL,
-      "fileType" TEXT NOT NULL,
-      "fileSize" INTEGER,
-      "attachmentType" TEXT NOT NULL,
-      "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
-      CONSTRAINT "attachments_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE,
-      CONSTRAINT "attachments_uploadedById_fkey" FOREIGN KEY ("uploadedById") REFERENCES "users"("id")
-    );
-  `)
-
-  console.log('✅ Mock schema generated from Prisma schema')
 }
 
 /**
  * Seeds the mock database with test data for all pricing modes.
  * Creates test users, lab, and services to support testing workflows.
  *
- * @param prisma - Prisma client instance
+ * Includes all 3 pricing modes:
+ * - QUOTE_REQUIRED: No fixed price, requires custom quote
+ * - FIXED: Fixed catalog price for instant booking
+ * - HYBRID: Fixed price available, but allows custom quotes
+ *
+ * @param prisma - Prisma client instance (from createPrismaMock)
  */
 export async function seedMockDatabase(prisma: PrismaClient): Promise<void> {
-  // Seed test users
+  // Clear existing data first (for test isolation)
+  try {
+    await prisma.attachment.deleteMany()
+    await prisma.order.deleteMany()
+    await prisma.labService.deleteMany()
+    await prisma.lab.deleteMany()
+    await prisma.session.deleteMany()
+    await prisma.account.deleteMany()
+    await prisma.user.deleteMany()
+  } catch (e) {
+    // Ignore errors if tables don't exist yet
+  }
+
+  // Seed test users (all 3 roles)
   await prisma.user.createMany({
     data: [
       {
@@ -256,11 +230,7 @@ export async function seedMockDatabase(prisma: PrismaClient): Promise<void> {
       ownerId: 'user-lab-admin-1',
       name: 'Test Lab',
       description: 'ISO 17025 certified testing laboratory',
-      location: {
-        city: 'Manila',
-        province: 'Metro Manila',
-        country: 'Philippines',
-      },
+      location: { city: 'Manila', country: 'Philippines' },
       certifications: ['ISO 17025'],
     },
   })
@@ -271,11 +241,11 @@ export async function seedMockDatabase(prisma: PrismaClient): Promise<void> {
       {
         id: 'service-quote-1',
         labId: 'lab-1',
-        name: 'Custom Water Analysis',
-        description: 'Requires custom quote based on parameters',
-        category: 'Water Testing',
+        name: 'Microbial Load Testing',
+        description: 'Comprehensive microbial analysis - requires custom quote',
+        category: 'Microbiology',
         pricingMode: 'QUOTE_REQUIRED',
-        pricePerUnit: null,
+        pricePerUnit: null, // No fixed price - quote required
         unitType: 'per_sample',
         turnaroundDays: 7,
         active: true,
@@ -283,11 +253,11 @@ export async function seedMockDatabase(prisma: PrismaClient): Promise<void> {
       {
         id: 'service-fixed-1',
         labId: 'lab-1',
-        name: 'Standard Microbiological Testing',
-        description: 'Fixed pricing for instant booking',
-        category: 'Microbiology',
+        name: 'pH Testing',
+        description: 'Basic pH measurement - fixed pricing',
+        category: 'Chemistry',
         pricingMode: 'FIXED',
-        pricePerUnit: 500,
+        pricePerUnit: { toNumber: () => 500 }, // Fixed catalog price (Decimal-like)
         unitType: 'per_sample',
         turnaroundDays: 3,
         active: true,
@@ -295,11 +265,11 @@ export async function seedMockDatabase(prisma: PrismaClient): Promise<void> {
       {
         id: 'service-hybrid-1',
         labId: 'lab-1',
-        name: 'Heavy Metals Analysis',
-        description: 'Reference price available, custom quotes accepted',
-        category: 'Chemical Testing',
+        name: 'Moisture Content Analysis',
+        description: 'Moisture determination - fixed price or custom quote',
+        category: 'Chemistry',
         pricingMode: 'HYBRID',
-        pricePerUnit: 800,
+        pricePerUnit: { toNumber: () => 800 }, // Reference price (Decimal-like)
         unitType: 'per_sample',
         turnaroundDays: 5,
         active: true,
@@ -312,12 +282,20 @@ export async function seedMockDatabase(prisma: PrismaClient): Promise<void> {
 
 /**
  * Resets the mock database singleton (useful for test isolation).
- * Forces recreation of database on next createPrismaMock() call.
+ * Clears the in-memory data and forces recreation on next createPrismaMock() call.
  */
 export async function resetMockDatabase(): Promise<void> {
   if (mockPrisma) {
     await mockPrisma.$disconnect()
+    mockPrisma = null
   }
-  mockDb = null
-  mockPrisma = null
+
+  // Clear all in-memory data
+  mockData.users.clear()
+  mockData.labs.clear()
+  mockData.labServices.clear()
+  mockData.orders.clear()
+  mockData.attachments.clear()
+  mockData.accounts.clear()
+  mockData.sessions.clear()
 }

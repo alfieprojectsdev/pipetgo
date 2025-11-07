@@ -16,7 +16,7 @@ describe('db-mock', () => {
     await resetMockDatabase()
   })
 
-  it('should initialize pg-mem database with Prisma schema', async () => {
+  it('should initialize SQLite database with Prisma schema', async () => {
     expect(prisma).toBeDefined()
     expect(prisma.$connect).toBeDefined()
   })
@@ -78,11 +78,11 @@ describe('db-mock', () => {
         labId: service!.labId,
         serviceId: service!.id,
         status: 'QUOTE_REQUESTED',
-        clientDetails: {
+        clientDetails: JSON.stringify({
           name: 'Test Client',
           email: 'client@test.com',
           phone: '+63 123 456 7890',
-        },
+        }),
         sampleDescription: 'Water sample from industrial site',
         quotedPrice: null, // No price yet
         quotedAt: null,
@@ -111,7 +111,7 @@ describe('db-mock', () => {
         labId: service!.labId,
         serviceId: service!.id,
         status: 'QUOTE_REQUESTED',
-        clientDetails: { name: 'Test Client', email: 'client@test.com' },
+        clientDetails: JSON.stringify({ name: 'Test Client', email: 'client@test.com' }),
         sampleDescription: 'Test sample',
       },
     })

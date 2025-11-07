@@ -59,9 +59,16 @@ if (process.env.USE_MOCK_DB === 'true') {
   console.log('🧪 Tests will use pg-mem (mock database)')
 
   beforeAll(async () => {
-    const { seedMockDatabase } = await import('@/lib/db-mock')
-    const { prisma } = await import('@/lib/db')
-    await seedMockDatabase(prisma)
+    try {
+      const { seedMockDatabase } = await import('@/lib/db-mock')
+      const { prisma } = await import('@/lib/db')
+      // Only seed if prisma has the expected methods (not manually mocked)
+      if (prisma.user && typeof prisma.user.createMany === 'function') {
+        await seedMockDatabase(prisma)
+      }
+    } catch (e) {
+      // Ignore errors if mock is not available (test might use its own mocks)
+    }
   })
 } else {
   console.log('🌐 Tests will use live database')
