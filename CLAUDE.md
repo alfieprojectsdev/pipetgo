@@ -1080,17 +1080,16 @@ cat .trees/.scratchpads/shared.md  # Check alerts
 
 #### Setup Instructions
 
-1. **Create GoatCounter Account** (free tier: <100k pageviews/month)
+1. **GoatCounter Account** (already configured)
    ```bash
-   # Visit https://www.goatcounter.com
-   # Create account with code: pipetgo
-   # Your endpoint: https://pipetgo.goatcounter.com
+   # Using existing account: https://ithinkandicode.goatcounter.com
+   # This will track PipetGo alongside your other projects
    ```
 
 2. **Configure Environment Variable**
    ```bash
    # .env.local (production)
-   NEXT_PUBLIC_GOATCOUNTER_URL="https://pipetgo.goatcounter.com/count"
+   NEXT_PUBLIC_GOATCOUNTER_URL="https://ithinkandicode.goatcounter.com/count"
 
    # .env.local (development - disable analytics)
    NEXT_PUBLIC_GOATCOUNTER_URL=""
