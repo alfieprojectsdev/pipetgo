@@ -98,6 +98,9 @@ export type UpdateOrderInput = z.infer<typeof updateOrderSchema>
  * Ensures order status follows proper flow
  */
 const validStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
+  [OrderStatus.QUOTE_REQUESTED]: [OrderStatus.QUOTE_PROVIDED, OrderStatus.CANCELLED],
+  [OrderStatus.QUOTE_PROVIDED]: [OrderStatus.QUOTE_REJECTED, OrderStatus.PENDING, OrderStatus.CANCELLED],
+  [OrderStatus.QUOTE_REJECTED]: [OrderStatus.QUOTE_REQUESTED], // Can request new quote
   [OrderStatus.PENDING]: [OrderStatus.ACKNOWLEDGED, OrderStatus.CANCELLED],
   [OrderStatus.ACKNOWLEDGED]: [OrderStatus.IN_PROGRESS, OrderStatus.CANCELLED],
   [OrderStatus.IN_PROGRESS]: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],

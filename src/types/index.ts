@@ -12,26 +12,15 @@
  * - JSON types need explicit TypeScript definitions
  */
 
-import { Prisma } from '@prisma/client'
+import { Prisma, UserRole, OrderStatus } from '@prisma/client'
 
 // ============================================================================
-// ENUMS - Mirror Prisma schema enums
+// ENUMS - Re-export from Prisma (single source of truth)
 // ============================================================================
 
-export enum UserRole {
-  CLIENT = 'CLIENT',
-  LAB_ADMIN = 'LAB_ADMIN',
-  ADMIN = 'ADMIN'
-}
+export { UserRole, OrderStatus }
 
-export enum OrderStatus {
-  PENDING = 'PENDING',
-  ACKNOWLEDGED = 'ACKNOWLEDGED',
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED'
-}
-
+// AttachmentType is not in Prisma schema, so we keep it here
 export enum AttachmentType {
   SPECIFICATION = 'specification',
   RESULT = 'result',
@@ -341,6 +330,9 @@ export type ServiceWithLab = LabService & {
  * UI helper for badge styling
  */
 export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
+  [OrderStatus.QUOTE_REQUESTED]: 'bg-orange-100 text-orange-800',
+  [OrderStatus.QUOTE_PROVIDED]: 'bg-cyan-100 text-cyan-800',
+  [OrderStatus.QUOTE_REJECTED]: 'bg-gray-100 text-gray-800',
   [OrderStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
   [OrderStatus.ACKNOWLEDGED]: 'bg-blue-100 text-blue-800',
   [OrderStatus.IN_PROGRESS]: 'bg-purple-100 text-purple-800',

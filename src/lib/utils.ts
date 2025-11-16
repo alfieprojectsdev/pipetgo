@@ -98,6 +98,9 @@ export function formatFileSize(bytes: number | null | undefined): string {
  */
 export function getStatusColor(status: OrderStatus): string {
   const colors: Record<OrderStatus, string> = {
+    [OrderStatus.QUOTE_REQUESTED]: 'bg-orange-100 text-orange-800 border-orange-200',
+    [OrderStatus.QUOTE_PROVIDED]: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    [OrderStatus.QUOTE_REJECTED]: 'bg-gray-100 text-gray-800 border-gray-200',
     [OrderStatus.PENDING]: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     [OrderStatus.ACKNOWLEDGED]: 'bg-blue-100 text-blue-800 border-blue-200',
     [OrderStatus.IN_PROGRESS]: 'bg-purple-100 text-purple-800 border-purple-200',
@@ -113,6 +116,9 @@ export function getStatusColor(status: OrderStatus): string {
  */
 export function getStatusDisplayName(status: OrderStatus): string {
   const names: Record<OrderStatus, string> = {
+    [OrderStatus.QUOTE_REQUESTED]: 'Quote Requested',
+    [OrderStatus.QUOTE_PROVIDED]: 'Quote Provided',
+    [OrderStatus.QUOTE_REJECTED]: 'Quote Rejected',
     [OrderStatus.PENDING]: 'Pending',
     [OrderStatus.ACKNOWLEDGED]: 'Acknowledged',
     [OrderStatus.IN_PROGRESS]: 'In Progress',
