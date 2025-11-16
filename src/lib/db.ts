@@ -47,30 +47,25 @@ export let prisma: PrismaClient
  * 🎓 Dual-Mode Decision Logic
  * - Mock mode: Fast, isolated, in-memory database for unit tests
  * - Live mode: Real PostgreSQL connection to Neon for integration tests
+ *
+ * NOTE: Mock mode is disabled in production builds (USE_MOCK_DB is only for tests)
  */
-if (process.env.USE_MOCK_DB === 'true') {
-  // Mock mode: Use pg-mem (in-memory database)
-  const { createPrismaMock } = await import('@/lib/db-mock')
-  prisma = await createPrismaMock()
-  console.log('🧪 Using pg-mem (mock database)')
-} else {
-  // Live mode: Use existing Neon PostgreSQL logic
-  prisma =
-    globalForPrisma.prisma ??
-    new PrismaClient({
-      // Log queries in development (helpful for debugging)
-      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-    })
-  console.log('🌐 Using Neon (live database)')
+// Live mode: Use Neon PostgreSQL (production default)
+prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    // Log queries in development (helpful for debugging)
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  })
+console.log('🌐 Using Neon (live database)')
 
-  /**
-   * 🎓 Store in Global (Live Mode Only)
-   * In development, preserve instance across hot-reloads
-   * In production, this has no effect (globalThis is naturally stable)
-   */
-  if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma.prisma = prisma
-  }
+/**
+ * 🎓 Store in Global (Development Only)
+ * In development, preserve instance across hot-reloads
+ * In production, this has no effect (globalThis is naturally stable)
+ */
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma
 }
 
 /**
