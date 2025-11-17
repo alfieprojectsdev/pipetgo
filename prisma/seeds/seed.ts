@@ -96,7 +96,7 @@ async function createSampleOrders() {
       clientId: clients[1].id,
       labId: services[1].labId,
       serviceId: services[1].id,
-      status: 'QUOTED' as const,
+      status: 'QUOTE_PROVIDED' as const,
       clientDetails: {
         contactEmail: clients[1].email,
         contactPhone: '+63918765432',
