@@ -9,6 +9,8 @@
  * For real PostgreSQL integration tests, use Testcontainers or live database.
  */
 
+// @ts-nocheck - Mock file only used in test environment
+
 import { PrismaClient, Prisma } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
 

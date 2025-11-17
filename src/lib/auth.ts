@@ -21,7 +21,7 @@ import { NextAuthOptions } from 'next-auth'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from './db'
-import { UserRole } from '@prisma/client'
+import type { UserRole } from '@prisma/client'
 
 /**
  * 🎓 NextAuth Options

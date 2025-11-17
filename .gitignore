@@ -12,6 +12,9 @@ build/
 .env.local
 .env.*.local
 .env.example
+.env.production
+.env.dev
+.env.prod
 
 # Database
 *.db
@@ -37,3 +40,6 @@ storybook-static/
 
 # Claude Code logs
 claude_*.log
+
+# TypeScript build cache
+tsconfig.tsbuildinfo

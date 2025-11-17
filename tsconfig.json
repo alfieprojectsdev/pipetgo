@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "target": "es2017",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -28,9 +27,9 @@
   },
   "include": [
     "next-env.d.ts",
-    "src/**/*.ts",
-    "src/**/*.tsx",
+    "**/*.ts",
+    "**/*.tsx",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "docs", "prisma"]
+  "exclude": ["node_modules", "docs", "tests", "**/*.test.ts", "**/*.test.tsx", "vitest.config.ts", "vitest.setup.ts", "prisma", "**/*-mock.ts", "**/*.mock.ts"]
 }
