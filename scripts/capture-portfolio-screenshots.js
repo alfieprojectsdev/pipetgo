@@ -7,8 +7,12 @@
  * - Flow 3: Fixed rate service (instant booking)
  * - Flow 4: Multi-lab catalog overview
  *
- * Prerequisites: npm run dev server running on localhost:3000
+ * Prerequisites: Production site at https://www.pipetgo.com
  * Usage: node scripts/capture-portfolio-screenshots.js
+ *
+ * Environment Variables:
+ * - PIPETGO_URL: Override base URL (default: production)
+ *   Example: PIPETGO_URL=http://localhost:3000 node scripts/capture-portfolio-screenshots.js
  */
 
 const { chromium } = require('playwright');
@@ -16,10 +20,10 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.PIPETGO_URL || 'https://www.pipetgo.com';
 const SCREENSHOT_DIR = path.join(__dirname, '../docs/screenshots/portfolio');
 const VIEWPORT = { width: 1920, height: 1080 };
-const ANIMATION_DELAY = 1000; // Wait for animations/loading
+const ANIMATION_DELAY = 2000; // Increased for production (CDN, network delays)
 
 // Demo accounts (from seed data)
 const ACCOUNTS = {
