@@ -206,7 +206,11 @@ export default function ClientDashboard() {
                           {order.lab.name} • {order.service.category}
                         </CardDescription>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}
+                        role="status"
+                        aria-label={`Order status: ${getStatusText(order.status)}`}
+                      >
                         {getStatusText(order.status)}
                       </span>
                     </div>

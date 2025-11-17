@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { analytics } from '@/lib/analytics'
 import { z } from 'zod'
 
 const quoteSchema = z.object({
@@ -113,6 +114,9 @@ export async function POST(
 
       return updatedOrder
     })
+
+    // Analytics: Track quote provided
+    analytics.quoteProvided()
 
     return NextResponse.json(result, { status: 200 })
 
