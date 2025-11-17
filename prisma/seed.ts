@@ -153,6 +153,134 @@ async function main() {
       pricePerUnit: 1500, // ₱1,500 (reference price)
       turnaroundDays: 2,
       sampleRequirements: 'Method: Kjeldahl method. Standard sample: 50g. Request custom quote for research-grade analysis.'
+    },
+
+    // Additional specialized services for Metro Manila Testing Lab
+    // Microscopy
+    {
+      name: 'Scanning Electron Microscopy (SEM)',
+      description: 'High-resolution surface imaging and morphological analysis with EDX elemental mapping capability',
+      category: 'Microscopy',
+      pricingMode: PricingMode.QUOTE_REQUIRED,
+      pricePerUnit: null,
+      turnaroundDays: 5,
+      sampleRequirements: 'Method: SEM with EDX. Solid samples, vacuum compatible. Quote based on magnification requirements and imaging time.'
+    },
+    {
+      name: 'Optical Microscopy',
+      description: 'Light microscopy for particle analysis, contamination identification, and material inspection',
+      category: 'Microscopy',
+      pricingMode: PricingMode.FIXED,
+      pricePerUnit: 1200,
+      turnaroundDays: 1,
+      sampleRequirements: 'Method: Optical microscope with digital imaging. Solid or liquid samples. Standard magnification up to 1000x.'
+    },
+
+    // Thermal Analysis
+    {
+      name: 'Thermogravimetric Analysis (TGA)',
+      description: 'Weight change measurement as a function of temperature for thermal stability and composition analysis',
+      category: 'Thermal Analysis',
+      pricingMode: PricingMode.HYBRID,
+      pricePerUnit: 3200,
+      turnaroundDays: 3,
+      sampleRequirements: 'Method: TGA. Solid samples, 5-20mg. Standard temperature ramp shown, custom programs available.'
+    },
+    {
+      name: 'Differential Scanning Calorimetry (DSC)',
+      description: 'Heat flow measurement for phase transitions, melting points, glass transitions, and thermal stability',
+      category: 'Thermal Analysis',
+      pricingMode: PricingMode.HYBRID,
+      pricePerUnit: 3500,
+      turnaroundDays: 3,
+      sampleRequirements: 'Method: DSC. Solid or liquid samples, 5-15mg. Reference price for standard scan, custom heating/cooling rates available.'
+    },
+
+    // Mechanical Testing
+    {
+      name: 'Tensile Testing',
+      description: 'Measurement of tensile strength, yield strength, elongation, and elastic modulus of materials',
+      category: 'Mechanical Testing',
+      pricingMode: PricingMode.QUOTE_REQUIRED,
+      pricePerUnit: null,
+      turnaroundDays: 4,
+      sampleRequirements: 'Method: Universal Testing Machine. Provide material type, dimensions, and testing standard (ASTM, ISO) for quote.'
+    },
+    {
+      name: 'Hardness Testing',
+      description: 'Rockwell, Brinell, or Vickers hardness testing for metals, plastics, and composite materials',
+      category: 'Mechanical Testing',
+      pricingMode: PricingMode.FIXED,
+      pricePerUnit: 900,
+      turnaroundDays: 1,
+      sampleRequirements: 'Method: Hardness tester. Solid samples with flat surface. Specify hardness scale required.'
+    },
+
+    // Biological Testing
+    {
+      name: 'Microbial Identification (16S rRNA Sequencing)',
+      description: 'Bacterial identification and phylogenetic analysis using next-generation sequencing',
+      category: 'Biological Testing',
+      pricingMode: PricingMode.QUOTE_REQUIRED,
+      pricePerUnit: null,
+      turnaroundDays: 10,
+      sampleRequirements: 'Method: DNA extraction and NGS. Pure culture or environmental sample. Quote varies by sample complexity and depth of analysis.'
+    },
+    {
+      name: 'Cell Viability Testing',
+      description: 'MTT assay and trypan blue exclusion for cell culture viability and cytotoxicity assessment',
+      category: 'Biological Testing',
+      pricingMode: PricingMode.FIXED,
+      pricePerUnit: 2800,
+      turnaroundDays: 2,
+      sampleRequirements: 'Method: MTT assay. Provide cell line and test compound information. Standard 96-well plate format.'
+    },
+
+    // Specialized Services
+    {
+      name: 'Nutritional Analysis Panel',
+      description: 'Comprehensive food analysis: protein, fat, carbohydrates, moisture, ash, fiber, and caloric content',
+      category: 'Nutritional Analysis',
+      pricingMode: PricingMode.HYBRID,
+      pricePerUnit: 6500,
+      turnaroundDays: 5,
+      sampleRequirements: 'Method: Multi-technique (Kjeldahl, Soxhlet, gravimetric). Minimum 500g sample. Reference price for standard panel, custom panels available.'
+    },
+    {
+      name: 'Polymer Characterization',
+      description: 'Comprehensive polymer testing: molecular weight, thermal properties, mechanical properties, and chemical composition',
+      category: 'Polymer Testing',
+      pricingMode: PricingMode.QUOTE_REQUIRED,
+      pricePerUnit: null,
+      turnaroundDays: 7,
+      sampleRequirements: 'Method: Combined GPC, DSC, TGA, FTIR. Provide polymer type and specific characterization needs for quote.'
+    },
+    {
+      name: 'Corrosion Testing',
+      description: 'Salt spray testing, electrochemical corrosion, and immersion testing for material corrosion resistance',
+      category: 'Corrosion Testing',
+      pricingMode: PricingMode.QUOTE_REQUIRED,
+      pricePerUnit: null,
+      turnaroundDays: 14,
+      sampleRequirements: 'Method: ASTM B117 salt spray or electrochemical methods. Quote varies by test duration and sample size.'
+    },
+    {
+      name: 'Particle Size Analysis',
+      description: 'Dynamic light scattering (DLS) and laser diffraction for particle size distribution measurement',
+      category: 'Particle Analysis',
+      pricingMode: PricingMode.FIXED,
+      pricePerUnit: 2200,
+      turnaroundDays: 2,
+      sampleRequirements: 'Method: DLS or laser diffraction. Liquid suspensions or dry powders. Specify size range if known.'
+    },
+    {
+      name: 'VOC Testing (EPA Method 8260)',
+      description: 'Volatile organic compounds analysis in water, soil, and air samples using GC-MS',
+      category: 'VOC Testing',
+      pricingMode: PricingMode.HYBRID,
+      pricePerUnit: 5800,
+      turnaroundDays: 5,
+      sampleRequirements: 'Method: GC-MS per EPA 8260. Standard price for EPA target list, custom VOC panels available.'
     }
   ]
 
@@ -283,34 +411,87 @@ async function main() {
       },
     })
 
-    // Add diverse services for each lab
+    // Add diverse services for each lab based on comprehensive lab service categories
+    // Each lab gets 8 services covering different testing categories
     const labServicesForNewLab = [
+      // Spectroscopy Services
       {
-        name: 'Water Quality Analysis',
-        description: 'Comprehensive water testing for potable water, wastewater, and industrial effluent',
-        category: 'Environmental Testing',
+        name: 'UV-Vis Spectroscopy Analysis',
+        description: 'Ultraviolet-visible spectroscopy for concentration analysis, purity testing, and compound identification',
+        category: 'Spectroscopy',
+        pricingMode: PricingMode.FIXED,
+        pricePerUnit: 1800,
+        turnaroundDays: 2,
+        sampleRequirements: 'Method: UV-Vis Spectrophotometer. Liquid samples, minimum 2ml. Specify wavelength range if known.'
+      },
+      {
+        name: 'FTIR Spectroscopy',
+        description: 'Fourier Transform Infrared Spectroscopy for molecular structure identification and functional group analysis',
+        category: 'Spectroscopy',
+        pricingMode: PricingMode.HYBRID,
+        pricePerUnit: 2500,
+        turnaroundDays: 3,
+        sampleRequirements: 'Method: FTIR. Solid, liquid, or gas samples. Standard pricing for routine analysis, custom quote for complex materials.'
+      },
+
+      // Chromatography Services
+      {
+        name: 'HPLC Analysis',
+        description: 'High-Performance Liquid Chromatography for separation, identification, and quantification of compounds in liquid samples',
+        category: 'Liquid Chromatography',
+        pricingMode: PricingMode.QUOTE_REQUIRED,
+        pricePerUnit: null,
+        turnaroundDays: 4,
+        sampleRequirements: 'Method: HPLC with UV/DAD detector. Please specify compounds of interest and matrix for accurate quote.'
+      },
+      {
+        name: 'GC-MS Volatile Compound Screening',
+        description: 'Gas Chromatography-Mass Spectrometry for identification and quantification of volatile organic compounds',
+        category: 'Gas Chromatography',
+        pricingMode: PricingMode.HYBRID,
+        pricePerUnit: 4500,
+        turnaroundDays: 5,
+        sampleRequirements: 'Method: GC-MS. Volatile samples or headspace analysis. Reference price for standard VOC panel, custom panels available.'
+      },
+
+      // Material Characterization
+      {
+        name: 'X-Ray Diffraction (XRD)',
+        description: 'Crystalline phase identification and quantification, lattice parameter determination',
+        category: 'Material Characterization',
         pricingMode: PricingMode.QUOTE_REQUIRED,
         pricePerUnit: null,
         turnaroundDays: 5,
-        sampleRequirements: 'Method: Multiple parameters. Please specify testing requirements for accurate quote.'
+        sampleRequirements: 'Method: XRD. Powder or solid samples. Quote varies by analysis depth (qualitative vs quantitative).'
       },
       {
-        name: 'Total Coliform Testing',
-        description: 'Microbiological testing for total coliform and E. coli in water samples',
-        category: 'Water Safety',
-        pricingMode: PricingMode.FIXED,
-        pricePerUnit: 1200,
-        turnaroundDays: 3,
-        sampleRequirements: 'Method: Membrane filtration. Sterile bottle required, minimum 500ml.'
-      },
-      {
-        name: 'Heavy Metals Panel',
-        description: 'Detection of heavy metals (lead, mercury, cadmium, arsenic) in various matrices',
-        category: 'Environmental Testing',
+        name: 'Atomic Absorption Spectroscopy (AAS)',
+        description: 'Elemental analysis for metals in water, soil, food, and industrial samples',
+        category: 'Material Characterization',
         pricingMode: PricingMode.HYBRID,
-        pricePerUnit: 3500,
-        turnaroundDays: 5,
-        sampleRequirements: 'Method: AAS/ICP-MS. Standard panel price shown, custom panels available.'
+        pricePerUnit: 2800,
+        turnaroundDays: 4,
+        sampleRequirements: 'Method: AAS. Standard price for single element, custom quote for multi-element panels.'
+      },
+
+      // Environmental Testing
+      {
+        name: 'Soil Contamination Analysis',
+        description: 'Comprehensive soil testing for heavy metals, pesticides, and organic pollutants',
+        category: 'Environmental Testing',
+        pricingMode: PricingMode.QUOTE_REQUIRED,
+        pricePerUnit: null,
+        turnaroundDays: 7,
+        sampleRequirements: 'Method: Multi-technique. Minimum 500g soil sample. Specify contaminants of concern for quote.'
+      },
+      {
+        name: 'Air Quality Monitoring',
+        description: 'Particulate matter (PM2.5, PM10), VOCs, and gaseous pollutant analysis',
+        category: 'Environmental Testing',
+        pricingMode: PricingMode.FIXED,
+        pricePerUnit: 5500,
+        turnaroundDays: 3,
+        sampleRequirements: 'Method: Air sampling with gravimetric and sensor analysis. On-site sampling available (additional fee).'
       }
     ]
 
@@ -325,11 +506,30 @@ async function main() {
   }
 
   console.log('✅ Database seeded successfully!')
-  console.log('📊 Demo accounts created:')
-  console.log('  Client: client@example.com')
-  console.log('  Lab Admin: lab@testinglab.com')
-  console.log('  Platform Admin: admin@pipetgo.com')
-  console.log('  Additional Labs: lab2@chempro.com, lab3@eurofins.com, lab4@intertek.com')
+  console.log('')
+  console.log('📊 Demo Accounts:')
+  console.log('  🧪 Client: client@example.com (Maria Santos)')
+  console.log('  🔬 Lab Admin: lab@testinglab.com (Metro Manila Testing Lab)')
+  console.log('  🔬 Lab Admin: lab2@chempro.com (Chempro Analytical)')
+  console.log('  🔬 Lab Admin: lab3@eurofins.com (Eurofins Philippines)')
+  console.log('  🔬 Lab Admin: lab4@intertek.com (Intertek Makati)')
+  console.log('  👤 Platform Admin: admin@pipetgo.com')
+  console.log('')
+  console.log('🧬 Lab Services Created:')
+  console.log('  • Metro Manila Testing Lab: 23 services')
+  console.log('    - Spectroscopy, Chromatography, Thermal Analysis')
+  console.log('    - Microscopy, Mechanical Testing, Biological Testing')
+  console.log('    - Material Characterization, Environmental Testing')
+  console.log('  • Chempro Analytical: 8 services')
+  console.log('  • Eurofins Philippines: 8 services')
+  console.log('  • Intertek Makati: 8 services')
+  console.log('')
+  console.log('  Total: 47 diverse lab services across 16 testing categories')
+  console.log('  Pricing: FIXED (15), QUOTE_REQUIRED (16), HYBRID (16)')
+  console.log('')
+  console.log('📝 Sample Orders: 2 (demonstrating quote workflow)')
+  console.log('')
+  console.log('🚀 Ready for production at: https://www.pipetgo.com')
 }
 
 main()
