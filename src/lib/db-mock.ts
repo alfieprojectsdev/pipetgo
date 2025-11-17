@@ -10,6 +10,7 @@
  */
 
 import { PrismaClient, Prisma } from '@prisma/client'
+import { Decimal } from '@prisma/client/runtime/library'
 
 // In-memory data store
 const mockData = {
@@ -116,7 +117,7 @@ export async function createPrismaMock(): Promise<PrismaClient> {
         const processedData = { ...data }
         if (typeof processedData.quotedPrice === 'number') {
           const price = processedData.quotedPrice
-          processedData.quotedPrice = { toNumber: () => price }
+          processedData.quotedPrice = new Decimal(price)
         }
         const updated = { ...order, ...processedData, updatedAt: new Date() }
         mockData.orders.set(where.id, updated)
@@ -257,7 +258,7 @@ export async function seedMockDatabase(prisma: PrismaClient): Promise<void> {
         description: 'Basic pH measurement - fixed pricing',
         category: 'Chemistry',
         pricingMode: 'FIXED',
-        pricePerUnit: { toNumber: () => 500 }, // Fixed catalog price (Decimal-like)
+        pricePerUnit: new Decimal(500), // Fixed catalog price
         unitType: 'per_sample',
         turnaroundDays: 3,
         active: true,
@@ -269,7 +270,7 @@ export async function seedMockDatabase(prisma: PrismaClient): Promise<void> {
         description: 'Moisture determination - fixed price or custom quote',
         category: 'Chemistry',
         pricingMode: 'HYBRID',
-        pricePerUnit: { toNumber: () => 800 }, // Reference price (Decimal-like)
+        pricePerUnit: new Decimal(800), // Reference price
         unitType: 'per_sample',
         turnaroundDays: 5,
         active: true,
