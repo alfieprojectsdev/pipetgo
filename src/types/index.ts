@@ -15,11 +15,12 @@
 import { Prisma, UserRole, OrderStatus } from '@prisma/client'
 
 // ============================================================================
-// ENUMS - Re-export Prisma schema enums
+// ENUMS - Re-export from Prisma (single source of truth)
 // ============================================================================
 
 export { UserRole, OrderStatus }
 
+// AttachmentType is not in Prisma schema, so we keep it here
 export enum AttachmentType {
   SPECIFICATION = 'specification',
   RESULT = 'result',
