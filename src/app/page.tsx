@@ -73,17 +73,8 @@ export default function Home() {
     router.push(`/order/${serviceId}`)
   }
 
-  if (session) {
-    // Redirect authenticated users to their dashboard
-    const dashboardPath = session.user.role === 'ADMIN' 
-      ? '/dashboard/admin' 
-      : session.user.role === 'LAB_ADMIN' 
-      ? '/dashboard/lab' 
-      : '/dashboard/client'
-    
-    router.push(dashboardPath)
-    return null
-  }
+  // Allow authenticated users to browse services on homepage
+  // They can navigate to their dashboard via header button
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -92,9 +83,35 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">PipetGo</h1>
-            <Button onClick={() => router.push('/api/auth/signin')}>
-              Sign In
-            </Button>
+            <div className="flex gap-2">
+              {session ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const dashboardPath = session.user.role === 'ADMIN'
+                        ? '/dashboard/admin'
+                        : session.user.role === 'LAB_ADMIN'
+                        ? '/dashboard/lab'
+                        : '/dashboard/client'
+                      router.push(dashboardPath)
+                    }}
+                  >
+                    Dashboard
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push('/api/auth/signout')}
+                  >
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={() => router.push('/api/auth/signin')}>
+                  Sign In
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>
