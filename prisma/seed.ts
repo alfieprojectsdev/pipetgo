@@ -222,7 +222,114 @@ async function main() {
     })
   }
 
+  // Create additional realistic labs from TestingConsolidated.JSON
+  const additionalLabs = [
+    {
+      email: 'lab2@chempro.com',
+      name: 'Chempro Analytical',
+      labName: 'Chempro Analytical Services Laboratories, Inc.',
+      description: 'Full-service analytical laboratory specializing in water quality testing and environmental analysis',
+      location: {
+        address: '2F-3F P1 Bldg. No. 131-135 Shaw Blvd., Brgy. Oranbo',
+        city: 'Pasig City',
+        coordinates: { lat: 14.5764, lng: 121.0851 }
+      },
+      certifications: ['ISO 17025:2017', 'DOH Licensed', 'DENR Accredited']
+    },
+    {
+      email: 'lab3@eurofins.com',
+      name: 'Eurofins Philippines',
+      labName: 'Eurofins Analytical and Assurance Services Philippines, Inc.',
+      description: 'International laboratory network providing comprehensive food safety and environmental testing services',
+      location: {
+        address: '8th Floor Azure Business Center, 1197 EDSA Brgy. Katipunan',
+        city: 'Quezon City',
+        coordinates: { lat: 14.6760, lng: 121.0437 }
+      },
+      certifications: ['ISO 17025:2017', 'FDA Registered', 'BPI Accredited', 'Eurofins Global Network']
+    },
+    {
+      email: 'lab4@intertek.com',
+      name: 'Intertek Makati',
+      labName: 'Analytical Assessment Division - Makati Laboratory Intertek Testing Services Philippines, Inc.',
+      description: 'Global quality and safety solutions provider specializing in fuels, lubricants, and petrochemical testing',
+      location: {
+        address: '2307 Chino Roces Avenue Extension',
+        city: 'Makati City',
+        coordinates: { lat: 14.5547, lng: 121.0244 }
+      },
+      certifications: ['ISO 17025:2017', 'DOE Accredited', 'Intertek Global Network']
+    }
+  ]
+
+  for (const labData of additionalLabs) {
+    const labAdminUser = await prisma.user.upsert({
+      where: { email: labData.email },
+      update: {},
+      create: {
+        email: labData.email,
+        name: labData.name,
+        role: UserRole.LAB_ADMIN,
+      },
+    })
+
+    const newLab = await prisma.lab.create({
+      data: {
+        name: labData.labName,
+        description: labData.description,
+        ownerId: labAdminUser.id,
+        location: labData.location,
+        certifications: labData.certifications
+      },
+    })
+
+    // Add diverse services for each lab
+    const labServicesForNewLab = [
+      {
+        name: 'Water Quality Analysis',
+        description: 'Comprehensive water testing for potable water, wastewater, and industrial effluent',
+        category: 'Environmental Testing',
+        pricingMode: PricingMode.QUOTE_REQUIRED,
+        pricePerUnit: null,
+        turnaroundDays: 5,
+        sampleRequirements: 'Method: Multiple parameters. Please specify testing requirements for accurate quote.'
+      },
+      {
+        name: 'Total Coliform Testing',
+        description: 'Microbiological testing for total coliform and E. coli in water samples',
+        category: 'Water Safety',
+        pricingMode: PricingMode.FIXED,
+        pricePerUnit: 1200,
+        turnaroundDays: 3,
+        sampleRequirements: 'Method: Membrane filtration. Sterile bottle required, minimum 500ml.'
+      },
+      {
+        name: 'Heavy Metals Panel',
+        description: 'Detection of heavy metals (lead, mercury, cadmium, arsenic) in various matrices',
+        category: 'Environmental Testing',
+        pricingMode: PricingMode.HYBRID,
+        pricePerUnit: 3500,
+        turnaroundDays: 5,
+        sampleRequirements: 'Method: AAS/ICP-MS. Standard panel price shown, custom panels available.'
+      }
+    ]
+
+    for (const serviceData of labServicesForNewLab) {
+      await prisma.labService.create({
+        data: {
+          ...serviceData,
+          labId: newLab.id,
+        },
+      })
+    }
+  }
+
   console.log('✅ Database seeded successfully!')
+  console.log('📊 Demo accounts created:')
+  console.log('  Client: client@example.com')
+  console.log('  Lab Admin: lab@testinglab.com')
+  console.log('  Platform Admin: admin@pipetgo.com')
+  console.log('  Additional Labs: lab2@chempro.com, lab3@eurofins.com, lab4@intertek.com')
 }
 
 main()
