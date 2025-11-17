@@ -1,6 +1,6 @@
 # PipetGo - Project Guide for Claude Code
 
-**Last Updated:** 2025-10-25
+**Last Updated:** 2025-11-08
 **Project Stage:** Stage 1 MVP Complete - Stage 2 Quotation Redesign Required
 **Critical Context:** B2B Quotation Marketplace (NOT E-commerce)
 
@@ -103,10 +103,17 @@ This project is coordinated by the **root-level Claude instance** in `/home/ltpt
 **Testing:**
 - Vitest 3.2.4
 - React Testing Library 16.3.0
-- 111 passing tests (utilities + validation only)
+- Dual-mode database (mock + live)
+- 233 passing tests (utilities + validation + API routes)
 
 **File Storage:**
 - UploadThing 7.7.4 (PDF results, sample specs)
+
+**Analytics:**
+- GoatCounter (privacy-friendly web analytics)
+- Level 1: Page view tracking only
+- No cookies, no personal data, GDPR-compliant
+- See `docs/ADR_GOATCOUNTER_LEVEL1_ANALYTICS.md`
 
 ---
 
@@ -1040,6 +1047,7 @@ cp .env.example .env.local
 # NEXTAUTH_SECRET="..."  # openssl rand -base64 32
 # UPLOADTHING_SECRET="..."  # uploadthing.com dashboard
 # UPLOADTHING_APP_ID="..."
+# NEXT_PUBLIC_GOATCOUNTER_URL=""  # Leave empty to disable analytics locally
 
 # 3. Push schema and seed database
 npm run db:push
@@ -1065,6 +1073,70 @@ npm run dev -- -p 3001  # Port 3001
 # Coordination
 cat .trees/.scratchpads/shared.md  # Check alerts
 ```
+
+### Analytics Setup (GoatCounter)
+
+**Level 1 Analytics** tracks page views only (privacy-friendly, no cookies, GDPR-compliant).
+
+#### Setup Instructions
+
+1. **GoatCounter Account** (already configured)
+   ```bash
+   # Using existing account: https://ithinkandicode.goatcounter.com
+   # This will track PipetGo alongside your other projects
+   ```
+
+2. **Configure Environment Variable**
+   ```bash
+   # .env.local (production)
+   NEXT_PUBLIC_GOATCOUNTER_URL="https://ithinkandicode.goatcounter.com/count"
+
+   # .env.local (development - disable analytics)
+   NEXT_PUBLIC_GOATCOUNTER_URL=""
+   ```
+
+3. **Verify Implementation**
+   ```bash
+   # Build and run production build
+   npm run build
+   npm start
+
+   # Navigate to different pages (homepage, dashboard, etc.)
+   # Check GoatCounter dashboard for pageviews
+   # Verify real-time tracking within 5 minutes
+   ```
+
+#### What Gets Tracked
+
+✅ **Tracked:**
+- Public pages (homepage, service listings, lab profiles)
+- Dashboard pages (client, lab admin, admin)
+- Order flow pages (service selection, RFQ, quote review)
+
+❌ **NOT Tracked:**
+- User identities (completely anonymous)
+- Form inputs or search queries
+- API routes (`/api/*`)
+- Next.js internal routes (`/_next/*`)
+
+#### Implementation Details
+
+**Files Modified:**
+- `src/app/layout.tsx` - Script tag + GoatCounterTracker component
+- `src/components/analytics/goatcounter-tracker.tsx` - App Router navigation tracking
+- `.env.example` - Environment variable documentation
+
+**Technical Specs:**
+- Script size: 3.5KB (minified)
+- Loading strategy: `afterInteractive` (non-blocking)
+- Performance impact: <50ms per page load
+- Privacy: No cookies, no personal data, IP anonymized
+
+**Future Levels:**
+- Level 2: Custom events (RFQ submissions, quote approvals)
+- Level 3: User segmentation (client vs lab admin funnels)
+
+See `docs/ADR_GOATCOUNTER_LEVEL1_ANALYTICS.md` for full architecture decision.
 
 ### Pre-Commit Checklist
 
