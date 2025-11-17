@@ -169,7 +169,7 @@ export default function LabDashboard() {
         <div className="grid md:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-green-600">
                 {orders.length}
               </div>
               <p className="text-sm text-gray-600">Total Orders</p>

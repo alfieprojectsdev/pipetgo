@@ -17,6 +17,7 @@
     "test:run:mock": "USE_MOCK_DB=true vitest run",
     "test:run:live": "USE_MOCK_DB=false vitest run",
     "type-check": "tsc --noEmit",
+    "screenshots:portfolio": "node scripts/capture-portfolio-screenshots.js",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
