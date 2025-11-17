@@ -14,20 +14,20 @@ enum UserRole {
 }
 
 enum PricingMode {
-  QUOTE_REQUIRED  // Default - Always requires custom quote
-  FIXED           // Backward compatibility - Instant booking
-  HYBRID          // Flexible - Reference price OR custom quote
+  QUOTE_REQUIRED // Default - Always requires custom quote
+  FIXED // Backward compatibility - Instant booking
+  HYBRID // Flexible - Reference price OR custom quote
 }
 
 enum OrderStatus {
-  QUOTE_REQUESTED  // Client submitted RFQ, awaiting lab quote
-  QUOTE_PROVIDED   // Lab provided custom quote, awaiting client approval
-  QUOTE_REJECTED   // Client rejected quote
-  PENDING          // Quote approved OR fixed-rate order, awaiting lab acknowledgment
-  ACKNOWLEDGED     // Lab acknowledged order
-  IN_PROGRESS      // Testing underway
-  COMPLETED        // Results delivered
-  CANCELLED        // Order cancelled
+  QUOTE_REQUESTED // Client submitted RFQ, awaiting lab quote
+  QUOTE_PROVIDED // Lab provided custom quote, awaiting client approval
+  QUOTE_REJECTED // Client rejected quote
+  PENDING // Quote approved OR fixed-rate order, awaiting lab acknowledgment
+  ACKNOWLEDGED // Lab acknowledged order
+  IN_PROGRESS // Testing underway
+  COMPLETED // Results delivered
+  CANCELLED // Order cancelled
 }
 
 model Account {
@@ -67,11 +67,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts      Account[]
-  sessions      Session[]
-  ownedLabs     Lab[]
-  clientOrders  Order[]   @relation("ClientOrders")
-  attachments   Attachment[]
+  accounts     Account[]
+  sessions     Session[]
+  ownedLabs    Lab[]
+  clientOrders Order[]      @relation("ClientOrders")
+  attachments  Attachment[]
 
   @@map("users")
 }
@@ -85,14 +85,14 @@ model VerificationToken {
 }
 
 model Lab {
-  id            String   @id @default(cuid())
-  ownerId       String
-  name          String
-  description   String?
-  location      Json?
+  id             String   @id @default(cuid())
+  ownerId        String
+  name           String
+  description    String?
+  location       Json?
   certifications String[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   owner    User         @relation(fields: [ownerId], references: [id])
   services LabService[]
@@ -119,35 +119,38 @@ model LabService {
   lab    Lab     @relation(fields: [labId], references: [id], onDelete: Cascade)
   orders Order[]
 
+  @@index([active, category, labId])
   @@map("lab_services")
 }
 
 model Order {
-  id                     String      @id @default(cuid())
-  clientId               String
-  labId                  String
-  serviceId              String
-  status                 OrderStatus @default(QUOTE_REQUESTED)
-  clientDetails          Json
-  sampleDescription      String
-  specialInstructions    String?
-  quotedPrice            Decimal?
-  quotedAt               DateTime?
-  quoteNotes             String?
+  id                      String      @id @default(cuid())
+  clientId                String
+  labId                   String
+  serviceId               String
+  status                  OrderStatus @default(QUOTE_REQUESTED)
+  clientDetails           Json
+  sampleDescription       String
+  specialInstructions     String?
+  quotedPrice             Decimal?
+  quotedAt                DateTime?
+  quoteNotes              String?
   estimatedTurnaroundDays Int?
-  quoteApprovedAt        DateTime?
-  quoteRejectedAt        DateTime?
-  quoteRejectedReason    String?
-  acknowledgedAt         DateTime?
-  completedAt            DateTime?
-  createdAt              DateTime    @default(now())
-  updatedAt              DateTime    @updatedAt
+  quoteApprovedAt         DateTime?
+  quoteRejectedAt         DateTime?
+  quoteRejectedReason     String?
+  acknowledgedAt          DateTime?
+  completedAt             DateTime?
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
 
   client      User         @relation("ClientOrders", fields: [clientId], references: [id])
   lab         Lab          @relation(fields: [labId], references: [id])
   service     LabService   @relation(fields: [serviceId], references: [id])
   attachments Attachment[]
 
+  @@index([clientId, status, createdAt(sort: Desc)])
+  @@index([labId, status, createdAt(sort: Desc)])
   @@map("orders")
 }
 
@@ -159,11 +162,12 @@ model Attachment {
   fileUrl        String
   fileType       String
   fileSize       Int?
-  attachmentType String   // 'specification', 'result', 'certificate'
+  attachmentType String // 'specification', 'result', 'certificate'
   createdAt      DateTime @default(now())
 
   order      Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   uploadedBy User  @relation(fields: [uploadedById], references: [id])
 
+  @@index([orderId, attachmentType, createdAt(sort: Desc)])
   @@map("attachments")
 }

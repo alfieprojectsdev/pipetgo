@@ -205,10 +205,11 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="sampleDescription" className="block text-sm font-medium mb-1">
                     Sample Description *
                   </label>
                   <textarea
+                    id="sampleDescription"
                     value={formData.sampleDescription}
                     onChange={(e) => setFormData(prev => ({ ...prev, sampleDescription: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -219,10 +220,11 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="specialInstructions" className="block text-sm font-medium mb-1">
                     Special Instructions
                   </label>
                   <textarea
+                    id="specialInstructions"
                     value={formData.specialInstructions}
                     onChange={(e) => setFormData(prev => ({ ...prev, specialInstructions: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -291,12 +293,13 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                   </Alert>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label htmlFor="contactEmail" className="block text-sm font-medium mb-1">
                       Contact Email *
                     </label>
                     <input
+                      id="contactEmail"
                       type="email"
                       value={formData.contactEmail}
                       onChange={(e) => setFormData(prev => ({ ...prev, contactEmail: e.target.value }))}
@@ -305,10 +308,11 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label htmlFor="contactPhone" className="block text-sm font-medium mb-1">
                       Contact Phone
                     </label>
                     <input
+                      id="contactPhone"
                       type="tel"
                       value={formData.contactPhone}
                       onChange={(e) => setFormData(prev => ({ ...prev, contactPhone: e.target.value }))}
@@ -319,10 +323,11 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label htmlFor="organization" className="block text-sm font-medium mb-1">
                     Organization
                   </label>
                   <input
+                    id="organization"
                     type="text"
                     value={formData.organization}
                     onChange={(e) => setFormData(prev => ({ ...prev, organization: e.target.value }))}
@@ -334,31 +339,49 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                 <div>
                   <h4 className="font-medium mb-2">Shipping Address</h4>
                   <div className="space-y-2">
-                    <input
-                      type="text"
-                      value={formData.street}
-                      onChange={(e) => setFormData(prev => ({ ...prev, street: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Street address *"
-                      required
-                    />
-                    <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label htmlFor="street" className="block text-sm font-medium mb-1">
+                        Street Address *
+                      </label>
                       <input
+                        id="street"
                         type="text"
-                        value={formData.city}
-                        onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                        value={formData.street}
+                        onChange={(e) => setFormData(prev => ({ ...prev, street: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="City *"
+                        placeholder="Street address"
                         required
                       />
-                      <input
-                        type="text"
-                        value={formData.postal}
-                        onChange={(e) => setFormData(prev => ({ ...prev, postal: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Postal code *"
-                        required
-                      />
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      <div>
+                        <label htmlFor="city" className="block text-sm font-medium mb-1">
+                          City *
+                        </label>
+                        <input
+                          id="city"
+                          type="text"
+                          value={formData.city}
+                          onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="City"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="postal" className="block text-sm font-medium mb-1">
+                          Postal Code *
+                        </label>
+                        <input
+                          id="postal"
+                          type="text"
+                          value={formData.postal}
+                          onChange={(e) => setFormData(prev => ({ ...prev, postal: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Postal code"
+                          required
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
