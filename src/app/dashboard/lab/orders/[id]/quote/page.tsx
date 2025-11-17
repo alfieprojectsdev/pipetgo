@@ -213,7 +213,7 @@ export default function QuoteProvisionPage({ params }: { params: { id: string } 
                 aria-required="true"
                 aria-invalid={!!formErrors.quotedPrice}
                 aria-describedby={formErrors.quotedPrice ? "quotedPrice-error" : undefined}
-                className="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 placeholder="e.g., 1500.00"
               />
               {formErrors.quotedPrice && (
@@ -235,7 +235,7 @@ export default function QuoteProvisionPage({ params }: { params: { id: string } 
                 step="1"
                 aria-invalid={!!formErrors.estimatedTurnaroundDays}
                 aria-describedby={formErrors.estimatedTurnaroundDays ? "estimatedTurnaroundDays-error" : undefined}
-                className="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 placeholder="e.g., 5"
               />
               {formErrors.estimatedTurnaroundDays && (
@@ -253,7 +253,7 @@ export default function QuoteProvisionPage({ params }: { params: { id: string } 
                 value={quoteNotes}
                 onChange={(e) => setQuoteNotes(e.target.value)}
                 rows={4}
-                className="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 placeholder="Additional details, clarifications, or terms for this quote..."
               />
               <p className="text-sm text-gray-500 mt-1">
@@ -266,7 +266,7 @@ export default function QuoteProvisionPage({ params }: { params: { id: string } 
               <Button
                 type="submit"
                 disabled={submitting}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-green-600 hover:bg-green-700 text-white"
               >
                 {submitting ? 'Submitting...' : 'Submit Quote'}
               </Button>
