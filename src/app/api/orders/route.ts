@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { analytics } from '@/lib/analytics'
 import { z } from 'zod'
 
 const createOrderSchema = z.object({
@@ -98,6 +99,14 @@ export async function POST(request: NextRequest) {
         client: { select: { name: true, email: true } }
       }
     })
+
+    // Analytics: Track quote request if applicable
+    if (initialStatus === 'QUOTE_REQUESTED') {
+      analytics.quoteRequested()
+    }
+
+    // Analytics: Track order creation with pricing mode
+    analytics.orderCreated(service.pricingMode)
 
     return NextResponse.json(order, { status: 201 })
   } catch (error) {

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { approveQuoteSchema } from '@/lib/validations/quote'
+import { analytics } from '@/lib/analytics'
 import { z } from 'zod'
 
 /**
@@ -136,6 +137,11 @@ export async function POST(
 
       return updatedOrder
     })
+
+    // Analytics: Track quote approval (not rejection)
+    if (validatedData.approved) {
+      analytics.quoteApproved()
+    }
 
     return NextResponse.json(result, { status: 200 })
 
