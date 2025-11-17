@@ -223,7 +223,11 @@ export default function LabDashboard() {
                           Client: {order.client.name} ({order.client.email})
                         </CardDescription>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}
+                        role="status"
+                        aria-label={`Order status: ${order.status.replace('_', ' ')}`}
+                      >
                         {order.status.replace('_', ' ')}
                       </span>
                     </div>
