@@ -24,7 +24,7 @@ export { UserRole, OrderStatus }
 export enum AttachmentType {
   SPECIFICATION = 'specification',
   RESULT = 'result',
-  CERTIFICATE = 'certificate'
+  CERTIFICATE = 'accreditation_certificate'
 }
 
 // ============================================================================
@@ -137,7 +137,7 @@ export type ClientDetails = {
 
 /**
  * 🎓 Attachment Type
- * Files associated with orders (specs, results, certificates)
+ * Files associated with orders (specs, results, accreditation certificates)
  * Stage 1: Uses mock URLs
  */
 export type Attachment = {
