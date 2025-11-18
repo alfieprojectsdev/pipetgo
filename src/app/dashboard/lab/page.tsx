@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 
+export const dynamic = 'force-dynamic'
+
 interface Order {
   id: string
   status: string
