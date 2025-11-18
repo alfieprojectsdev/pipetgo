@@ -24,7 +24,7 @@ const inter = localFont({
 
 export const metadata: Metadata = {
   title: 'PipetGo - Lab Services Marketplace',
-  description: 'Connect with certified laboratories for testing services',
+  description: 'Connect with accredited laboratories for testing services',
 }
 
 export default function RootLayout({

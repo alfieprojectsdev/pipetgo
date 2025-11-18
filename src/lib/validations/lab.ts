@@ -57,7 +57,7 @@ export const labSchema = z.object({
   location: labLocationSchema.optional().nullable(),
   certifications: z
     .array(z.string().max(100))
-    .max(20, 'Too many certifications')
+    .max(20, 'Too many accreditations')
     .default([])
 })
 

@@ -232,7 +232,7 @@ export async function seedMockDatabase(prisma: PrismaClient): Promise<void> {
       id: 'lab-1',
       ownerId: 'user-lab-admin-1',
       name: 'Test Lab',
-      description: 'ISO 17025 certified testing laboratory',
+      description: 'ISO 17025 accredited testing laboratory',
       location: { city: 'Manila', country: 'Philippines' },
       certifications: ['ISO 17025'],
     },

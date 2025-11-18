@@ -184,7 +184,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
               </div>
 
               <div>
-                <h4 className="font-medium text-gray-900">Certifications</h4>
+                <h4 className="font-medium text-gray-900">Accreditations</h4>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {service.lab.certifications.map((cert) => (
                     <span key={cert} className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">

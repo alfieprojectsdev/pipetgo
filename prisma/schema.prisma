@@ -162,7 +162,7 @@ model Attachment {
   fileUrl        String
   fileType       String
   fileSize       Int?
-  attachmentType String // 'specification', 'result', 'certificate'
+  attachmentType String // 'specification', 'result', 'accreditation_certificate'
   createdAt      DateTime @default(now())
 
   order      Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
