@@ -926,7 +926,7 @@ pipetgo/
 4. **Build Case Studies:** Early success stories for marketing
 
 **Investment Priority:**
-1. Production authentication (10-12 days) - $307,100 (AI-assisted) vs $1.1M (traditional)
+1. Production authentication (10-12 days) - ₱307,100 (AI-assisted) vs ₱1.1M (traditional)
 2. Payment integration (1 week) - Revenue enabler
 3. Email notifications (2-3 days) - UX critical
 4. Lab onboarding (1 week) - Scale enabler
