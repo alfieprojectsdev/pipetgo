@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { toast } from '@/lib/toast'
 
 interface Order {
   id: string
@@ -71,15 +72,16 @@ export default function ClientDashboard() {
       })
 
       if (response.ok) {
+        toast.success('Quote approved', 'Order is now pending')
         setApprovalDialogOpen(false)
         fetchOrders()
       } else {
         const data = await response.json()
-        alert(`Failed to approve quote: ${data.error}`)
+        toast.error('Failed to approve quote', data.error)
       }
     } catch (error) {
       console.error('Error approving quote:', error)
-      alert('An error occurred')
+      toast.error('An error occurred', 'Please try again')
     }
   }
 
@@ -106,15 +108,16 @@ export default function ClientDashboard() {
       })
 
       if (response.ok) {
+        toast.success('Quote rejected', 'Lab has been notified')
         setRejectionDialogOpen(false)
         fetchOrders()
       } else {
         const data = await response.json()
-        alert(`Failed to reject quote: ${data.error}`)
+        toast.error('Failed to reject quote', data.error)
       }
     } catch (error) {
       console.error('Error rejecting quote:', error)
-      alert('An error occurred')
+      toast.error('An error occurred', 'Please try again')
     }
   }
 

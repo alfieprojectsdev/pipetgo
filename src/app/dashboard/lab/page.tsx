@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { toast } from '@/lib/toast'
 
 interface Order {
   id: string
@@ -69,13 +70,14 @@ export default function LabDashboard() {
       })
 
       if (response.ok) {
+        toast.success('Order updated', 'Status has been changed successfully')
         fetchOrders() // Refresh orders
       } else {
-        alert('Failed to update order')
+        toast.error('Failed to update order', 'Please try again')
       }
     } catch (error) {
       console.error('Error updating order:', error)
-      alert('An error occurred')
+      toast.error('An error occurred', 'Please try again')
     } finally {
       setUpdatingOrder(null)
     }
