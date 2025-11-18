@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
+// Mark route as dynamic to handle query parameters
+export const dynamic = 'force-dynamic'
+
 const DEFAULT_PAGE_SIZE = 12
 const MAX_PAGE_SIZE = 50
 
