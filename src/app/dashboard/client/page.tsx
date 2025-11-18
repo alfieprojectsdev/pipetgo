@@ -10,6 +10,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 
+export const dynamic = 'force-dynamic'
+
 interface Order {
   id: string
   status: string
