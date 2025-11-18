@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
+export const dynamic = 'force-dynamic'
+
 interface Order {
   id: string
   status: string
