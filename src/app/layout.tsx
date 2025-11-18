@@ -4,6 +4,7 @@ import Script from 'next/script'
 import './globals.css'
 import { AuthProvider } from '@/components/auth-provider'
 import { GoatCounterTracker } from '@/components/analytics/goatcounter-tracker'
+import { Toaster } from 'sonner'
 
 const inter = localFont({
   src: [
@@ -24,7 +25,7 @@ const inter = localFont({
 
 export const metadata: Metadata = {
   title: 'PipetGo - Lab Services Marketplace',
-  description: 'Connect with accredited laboratories for testing services',
+  description: 'Connect with certified laboratories for testing services',
 }
 
 export default function RootLayout({
@@ -38,6 +39,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
         </AuthProvider>
+        <Toaster position="top-right" />
 
         {/* GoatCounter Analytics - Level 1 (Page Views Only) */}
         {process.env.NEXT_PUBLIC_GOATCOUNTER_URL && (
