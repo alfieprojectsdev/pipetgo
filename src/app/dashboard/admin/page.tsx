@@ -49,7 +49,7 @@ export default function AdminDashboard() {
   const getStatusColor = (status: string) => {
     const colors = {
       PENDING: 'bg-yellow-100 text-yellow-800',
-      ACKNOWLEDGED: 'bg-blue-100 text-blue-800',
+      ACKNOWLEDGED: 'bg-green-100 text-green-800',
       IN_PROGRESS: 'bg-purple-100 text-purple-800',
       COMPLETED: 'bg-green-100 text-green-800',
       CANCELLED: 'bg-red-100 text-red-800'
@@ -167,8 +167,8 @@ export default function AdminDashboard() {
                   <div key={category} className="flex items-center justify-between">
                     <span className="text-sm font-medium">{category}</span>
                     <div className="flex items-center space-x-2">
-                      <div className="bg-blue-100 rounded-full px-2 py-1">
-                        <span className="text-xs font-medium text-blue-800">{count}</span>
+                      <div className="bg-green-100 rounded-full px-2 py-1">
+                        <span className="text-xs font-medium text-green-800">{count}</span>
                       </div>
                     </div>
                   </div>
