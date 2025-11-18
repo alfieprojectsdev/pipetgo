@@ -139,7 +139,7 @@ export default function Home() {
             Find the Right Lab for Your Testing Needs
           </h2>
           <p className="text-xl mb-8">
-            Connect with certified laboratories for food safety, environmental, and chemical analysis
+            Connect with accredited laboratories for food safety, environmental, and chemical analysis
           </p>
           <Button
             size="lg"
