@@ -43,3 +43,6 @@ claude_*.log
 
 # TypeScript build cache
 tsconfig.tsbuildinfo
+
+# misc
+docs/terminal_snapshot.txt
