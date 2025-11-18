@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { formatCurrency } from '@/lib/utils'
+import { toast } from '@/lib/toast'
 
 interface LabService {
   id: string
@@ -106,15 +107,15 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
       })
 
       if (response.ok) {
-        alert('Order submitted successfully!')
+        toast.success('Order submitted successfully!', 'Redirecting to your dashboard')
         router.push('/dashboard/client')
       } else {
         const error = await response.json()
-        alert(`Error: ${error.error}`)
+        toast.error('Failed to submit order', error.error)
       }
     } catch (error) {
       console.error('Error submitting order:', error)
-      alert('An error occurred while submitting the order')
+      toast.error('An error occurred', 'Please try again')
     } finally {
       setIsSubmitting(false)
     }
