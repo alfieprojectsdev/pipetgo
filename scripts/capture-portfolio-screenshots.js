@@ -100,12 +100,28 @@ async function signOut(page) {
  * @param {import('playwright').Page} page
  * @param {string} filename
  * @param {string} description
+ * @param {string|null} contentSelector - Optional selector to wait for before capturing
  */
-async function captureScreenshot(page, filename, description) {
+async function captureScreenshot(page, filename, description, contentSelector = null) {
   console.log(`📸 ${filename}: ${description}`);
 
   // Wait for page to stabilize
   await page.waitForLoadState('networkidle');
+
+  // If content selector provided, wait for it to be visible
+  if (contentSelector) {
+    try {
+      console.log(`   ⏳ Waiting for content: "${contentSelector}"`);
+      await page.waitForSelector(contentSelector, {
+        state: 'visible',
+        timeout: 10000
+      });
+      console.log(`   ✓ Content loaded`);
+    } catch (error) {
+      console.log(`   ⚠️  Content selector "${contentSelector}" not found, capturing anyway...`);
+    }
+  }
+
   await page.waitForTimeout(ANIMATION_DELAY);
 
   // Take full-page screenshot
@@ -211,7 +227,8 @@ async function captureClientRfqFlow(page) {
   // 3. Sign in as client (reload page to ensure fresh state)
   await signIn(page, ACCOUNTS.client, false);
   await captureScreenshot(page, '03-client-dashboard-empty.png',
-    'Client dashboard (empty - no orders yet)');
+    'Client dashboard (empty - no orders yet)',
+    'h2:has-text("Your Test Requests"), h1, h2, main');
 
   // 4. Navigate to service catalog (click Browse Services or go home)
   await page.goto(BASE_URL);
@@ -241,7 +258,8 @@ async function captureClientRfqFlow(page) {
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(2000); // Wait for confirmation/redirect
   await captureScreenshot(page, '07-rfq-submitted.png',
-    'RFQ submission confirmation');
+    'RFQ submission confirmation',
+    'h2:has-text("Your Test Requests"), h1, h2, main');
 
   // 8. Return to client dashboard showing pending order
   await page.goto(`${BASE_URL}/dashboard/client`);
@@ -265,7 +283,8 @@ async function captureLabQuoteFlow(page) {
   // 10. Sign in as lab admin (reload page)
   await signIn(page, ACCOUNTS.lab, false);
   await captureScreenshot(page, '10-lab-dashboard-rfqs.png',
-    'Lab admin dashboard showing incoming RFQs');
+    'Lab admin dashboard showing incoming RFQs',
+    'h2:has-text("Incoming Requests"), h1, h2, main');
 
   // 11. Click on first order/RFQ (if any orders exist)
   // Orders might be in cards or table rows - try multiple selectors
