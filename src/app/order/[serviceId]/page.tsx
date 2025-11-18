@@ -161,7 +161,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                   <h4 className="font-medium text-gray-900">Price</h4>
                   {service.pricingMode === 'QUOTE_REQUIRED' ? (
                     <p className="text-sm text-gray-600">
-                      <span className="text-blue-600">ℹ️</span> Custom quote required
+                      <span className="text-green-600">ℹ️</span> Custom quote required
                     </p>
                   ) : service.pricingMode === 'FIXED' ? (
                     <p className="text-lg font-semibold text-green-600">
@@ -213,7 +213,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                     id="sampleDescription"
                     value={formData.sampleDescription}
                     onChange={(e) => setFormData(prev => ({ ...prev, sampleDescription: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                     rows={3}
                     placeholder="Describe your sample (e.g., Coconut oil from batch #123, suspected contamination)"
                     required
@@ -228,7 +228,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                     id="specialInstructions"
                     value={formData.specialInstructions}
                     onChange={(e) => setFormData(prev => ({ ...prev, specialInstructions: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                     rows={2}
                     placeholder="Any special handling requirements or notes"
                   />
@@ -238,7 +238,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                 {service.pricingMode === 'QUOTE_REQUIRED' && (
                   <Alert>
                     <AlertDescription>
-                      <span className="text-blue-600 font-medium">ℹ️ Custom quote required</span>
+                      <span className="text-green-600 font-medium">ℹ️ Custom quote required</span>
                       <p className="text-sm mt-1">
                         You'll submit an RFQ and receive a custom quote from the lab within 24-48 hours.
                       </p>
@@ -264,7 +264,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                     {requestCustomQuote ? (
                       <Alert>
                         <AlertDescription>
-                          <span className="text-blue-600 font-medium">ℹ️ Custom quote</span>
+                          <span className="text-green-600 font-medium">ℹ️ Custom quote</span>
                           <p className="text-sm mt-1">
                             You'll submit an RFQ and receive a custom quote from the lab.
                           </p>
@@ -304,7 +304,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                       type="email"
                       value={formData.contactEmail}
                       onChange={(e) => setFormData(prev => ({ ...prev, contactEmail: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                       required
                     />
                   </div>
@@ -317,7 +317,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                       type="tel"
                       value={formData.contactPhone}
                       onChange={(e) => setFormData(prev => ({ ...prev, contactPhone: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                       placeholder="+63917123456"
                     />
                   </div>
@@ -332,7 +332,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                     type="text"
                     value={formData.organization}
                     onChange={(e) => setFormData(prev => ({ ...prev, organization: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                     placeholder="Company or institution name"
                   />
                 </div>
@@ -349,7 +349,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                         type="text"
                         value={formData.street}
                         onChange={(e) => setFormData(prev => ({ ...prev, street: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                         placeholder="Street address"
                         required
                       />
@@ -364,7 +364,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                           type="text"
                           value={formData.city}
                           onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                           placeholder="City"
                           required
                         />
@@ -378,7 +378,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                           type="text"
                           value={formData.postal}
                           onChange={(e) => setFormData(prev => ({ ...prev, postal: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                           placeholder="Postal code"
                           required
                         />
