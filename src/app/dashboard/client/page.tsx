@@ -126,11 +126,11 @@ export default function ClientDashboard() {
   const getStatusColor = (status: string) => {
     const colors = {
       QUOTE_REQUESTED: 'bg-yellow-100 text-yellow-900',
-      QUOTE_PROVIDED: 'bg-blue-100 text-blue-900',
+      QUOTE_PROVIDED: 'bg-green-100 text-green-900',
       QUOTE_APPROVED: 'bg-green-100 text-green-900',
       QUOTE_REJECTED: 'bg-red-100 text-red-900',
       PENDING: 'bg-yellow-100 text-yellow-900',
-      ACKNOWLEDGED: 'bg-blue-100 text-blue-900',
+      ACKNOWLEDGED: 'bg-green-100 text-green-900',
       IN_PROGRESS: 'bg-purple-100 text-purple-900',
       COMPLETED: 'bg-green-100 text-green-900',
       CANCELLED: 'bg-red-100 text-red-900'
@@ -248,22 +248,22 @@ export default function ClientDashboard() {
                       {/* Quote Details */}
                       {order.status === 'QUOTE_PROVIDED' && order.quotedPrice && (
                         <div className="border-t pt-4">
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                             <div className="flex justify-between items-start mb-4">
                               <div>
-                                <p className="font-semibold text-blue-900">Quote Ready for Review</p>
-                                <p className="text-sm text-blue-700 mt-1">
+                                <p className="font-semibold text-green-900">Quote Ready for Review</p>
+                                <p className="text-sm text-green-700 mt-1">
                                   Lab has provided a quote of {formatCurrency(order.quotedPrice)}
                                 </p>
                                 {order.quotedAt && (
-                                  <p className="text-xs text-blue-600 mt-1">
+                                  <p className="text-xs text-green-600 mt-1">
                                     Quoted on {formatDate(order.quotedAt)}
                                   </p>
                                 )}
                                 {order.quoteNotes && (
                                   <div className="mt-2">
-                                    <p className="text-sm font-medium text-blue-900">Notes from lab:</p>
-                                    <p className="text-sm text-blue-800 mt-1">{order.quoteNotes}</p>
+                                    <p className="text-sm font-medium text-green-900">Notes from lab:</p>
+                                    <p className="text-sm text-green-800 mt-1">{order.quoteNotes}</p>
                                   </div>
                                 )}
                               </div>
@@ -300,7 +300,7 @@ export default function ClientDashboard() {
         <div className="grid md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-green-600">
                 {orders.length}
               </div>
               <p className="text-sm text-gray-600">Total Requests</p>
