@@ -88,10 +88,10 @@ export default function LabDashboard() {
   const getStatusColor = (status: string) => {
     const colors = {
       QUOTE_REQUESTED: 'bg-yellow-100 text-yellow-900',
-      QUOTE_PROVIDED: 'bg-blue-100 text-blue-900',
+      QUOTE_PROVIDED: 'bg-green-100 text-green-900',
       QUOTE_REJECTED: 'bg-red-100 text-red-900',
       PENDING: 'bg-yellow-100 text-yellow-900',
-      ACKNOWLEDGED: 'bg-blue-100 text-blue-900',
+      ACKNOWLEDGED: 'bg-green-100 text-green-900',
       IN_PROGRESS: 'bg-purple-100 text-purple-900',
       COMPLETED: 'bg-green-100 text-green-900',
       CANCELLED: 'bg-red-100 text-red-900'
@@ -173,7 +173,7 @@ export default function LabDashboard() {
         <div className="grid md:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-green-600">
                 {orders.length}
               </div>
               <p className="text-sm text-gray-600">Total Orders</p>
