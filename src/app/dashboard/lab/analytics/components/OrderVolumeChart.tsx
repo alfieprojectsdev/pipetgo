@@ -139,10 +139,29 @@ function formatMonthLabel(monthStr: string): string {
 }
 
 /**
+ * Chart data point interface for tooltip
+ */
+interface ChartDataPoint {
+  month: string
+  rawMonth: string
+  orderCount: number
+}
+
+/**
+ * Custom tooltip props interface
+ */
+interface CustomTooltipProps {
+  active?: boolean
+  payload?: Array<{
+    payload: ChartDataPoint
+  }>
+}
+
+/**
  * Custom tooltip component
  * Displays order count on hover
  */
-function CustomTooltip({ active, payload }: any) {
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!active || !payload || !payload.length) return null
 
   const data = payload[0].payload

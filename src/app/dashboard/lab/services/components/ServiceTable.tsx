@@ -224,8 +224,9 @@ export function ServiceTable() {
       const result = await res.json()
       toast.success(result.message)
       fetchServices()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to perform bulk action')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to perform bulk action'
+      toast.error(message)
     } finally {
       setBulkActionLoading(false)
     }

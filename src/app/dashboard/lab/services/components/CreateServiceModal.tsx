@@ -53,8 +53,9 @@ export function CreateServiceModal({ isOpen, onClose, onSuccess }: CreateService
       form.reset()
       onSuccess()
       onClose()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create service')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to create service'
+      toast.error(message)
     } finally {
       setSubmitting(false)
     }

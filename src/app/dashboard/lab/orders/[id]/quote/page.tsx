@@ -45,8 +45,9 @@ export default function QuoteProvisionPage({ params }: { params: { id: string } 
         }
         const data = await res.json()
         setOrder(data)
-      } catch (err: any) {
-        setError(err.message)
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to fetch order'
+        setError(message)
       } finally {
         setLoading(false)
       }
@@ -104,8 +105,9 @@ export default function QuoteProvisionPage({ params }: { params: { id: string } 
         router.push('/dashboard/lab')
         router.refresh()
       }, 1500)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to submit quote'
+      setError(message)
     } finally {
       setSubmitting(false)
     }

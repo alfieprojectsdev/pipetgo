@@ -31,7 +31,7 @@ export const toast = {
     }: {
       loading: string
       success: string | ((data: T) => string)
-      error: string | ((err: any) => string)
+      error: string | ((err: unknown) => string)
     }
   ) => {
     return sonnerToast.promise(promise, {

@@ -10,6 +10,12 @@ import { formatCurrency } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
+interface LabLocation {
+  city?: string
+  province?: string
+  country?: string
+}
+
 interface LabService {
   id: string
   name: string
@@ -20,7 +26,7 @@ interface LabService {
   turnaroundDays: number
   lab: {
     name: string
-    location: any
+    location: LabLocation | null
   }
 }
 

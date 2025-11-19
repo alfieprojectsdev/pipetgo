@@ -12,6 +12,18 @@ import { toast } from '@/lib/toast'
 
 export const dynamic = 'force-dynamic'
 
+interface Attachment {
+  id: string
+  orderId: string
+  uploadedById: string
+  fileName: string
+  fileUrl: string
+  fileType: string
+  fileSize: number | null
+  attachmentType: string
+  createdAt: string
+}
+
 interface Order {
   id: string
   status: string
@@ -21,7 +33,7 @@ interface Order {
   quoteNotes?: string | null
   service: { name: string; category: string }
   lab: { name: string }
-  attachments: any[]
+  attachments: Attachment[]
 }
 
 export default function ClientDashboard() {
