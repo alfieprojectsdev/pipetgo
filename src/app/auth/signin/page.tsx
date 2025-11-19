@@ -58,7 +58,7 @@ export default function SignIn() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">PipetGo</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">PipetGo!</CardTitle>
           <CardDescription className="text-center">
             Lab Services Marketplace - MVP Demo
           </CardDescription>
