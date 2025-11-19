@@ -7,8 +7,33 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { toast } from '@/lib/toast'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export const dynamic = 'force-dynamic'
+
+interface Attachment {
+  id: string
+  orderId: string
+  uploadedById: string
+  fileName: string
+  fileUrl: string
+  fileType: string
+  fileSize: number | null
+  attachmentType: string
+  createdAt: string
+}
+
+interface ClientDetails {
+  contactEmail?: string
+  contactPhone?: string
+  organization?: string
+  shippingAddress?: {
+    street?: string
+    city?: string
+    postal?: string
+    country?: string
+  }
+}
 
 interface Order {
   id: string
@@ -19,8 +44,8 @@ interface Order {
   quotedPrice?: number
   client: { name: string; email: string }
   service: { name: string; category: string }
-  clientDetails: any
-  attachments: any[]
+  clientDetails: ClientDetails
+  attachments: Attachment[]
 }
 
 export default function LabDashboard() {
@@ -57,7 +82,11 @@ export default function LabDashboard() {
     setUpdatingOrder(orderId)
 
     try {
-      const updateData: any = { status: newStatus }
+      const updateData: {
+        status: string
+        resultFileUrl?: string
+        resultFileName?: string
+      } = { status: newStatus }
 
       // Mock file upload for results
       if (withResults) {
@@ -88,10 +117,10 @@ export default function LabDashboard() {
   const getStatusColor = (status: string) => {
     const colors = {
       QUOTE_REQUESTED: 'bg-yellow-100 text-yellow-900',
-      QUOTE_PROVIDED: 'bg-blue-100 text-blue-900',
+      QUOTE_PROVIDED: 'bg-green-100 text-green-900',
       QUOTE_REJECTED: 'bg-red-100 text-red-900',
       PENDING: 'bg-yellow-100 text-yellow-900',
-      ACKNOWLEDGED: 'bg-blue-100 text-blue-900',
+      ACKNOWLEDGED: 'bg-green-100 text-green-900',
       IN_PROGRESS: 'bg-purple-100 text-purple-900',
       COMPLETED: 'bg-green-100 text-green-900',
       CANCELLED: 'bg-red-100 text-red-900'
@@ -150,7 +179,8 @@ export default function LabDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
@@ -173,7 +203,7 @@ export default function LabDashboard() {
         <div className="grid md:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-green-600">
                 {orders.length}
               </div>
               <p className="text-sm text-gray-600">Total Orders</p>
@@ -283,5 +313,6 @@ export default function LabDashboard() {
         </div>
       </main>
     </div>
+    </ErrorBoundary>
   )
 }

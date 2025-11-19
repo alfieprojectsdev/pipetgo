@@ -9,6 +9,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 
+interface LabLocation {
+  city?: string
+  province?: string
+  country?: string
+}
+
 interface LabService {
   id: string
   name: string
@@ -20,9 +26,27 @@ interface LabService {
   sampleRequirements: string
   lab: {
     name: string
-    location: any
+    location: LabLocation | null
     certifications: string[]
   }
+}
+
+interface OrderData {
+  serviceId: string
+  sampleDescription: string
+  specialInstructions: string
+  clientDetails: {
+    contactEmail: string
+    contactPhone: string
+    organization: string
+    shippingAddress: {
+      street: string
+      city: string
+      postal: string
+      country: string
+    }
+  }
+  requestCustomQuote?: boolean
 }
 
 export default function OrderPage({ params }: { params: { serviceId: string } }) {
@@ -78,7 +102,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
     setIsSubmitting(true)
 
     try {
-      const orderData: any = {
+      const orderData: OrderData = {
         serviceId: params.serviceId,
         sampleDescription: formData.sampleDescription,
         specialInstructions: formData.specialInstructions,
@@ -92,12 +116,9 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
             postal: formData.postal,
             country: 'Philippines'
           }
-        }
-      }
-
-      // Add requestCustomQuote for HYBRID services
-      if (service?.pricingMode === 'HYBRID') {
-        orderData.requestCustomQuote = requestCustomQuote
+        },
+        // Add requestCustomQuote for HYBRID services
+        ...(service?.pricingMode === 'HYBRID' && { requestCustomQuote })
       }
 
       const response = await fetch('/api/orders', {

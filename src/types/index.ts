@@ -382,3 +382,52 @@ export const ORDER_STATUS_FLOW: OrderStatus[] = [
 export const generateMockFileUrl = (orderId: string, fileName: string): string => {
   return `https://mock-storage.pipetgo.example.com/orders/${orderId}/${fileName}`
 }
+
+// ============================================================================
+// ANALYTICS TYPES
+// ============================================================================
+
+/**
+ * 🎓 Analytics Data
+ * Comprehensive analytics for lab administrators
+ * Used by /api/analytics endpoint and Analytics Dashboard
+ */
+export interface AnalyticsData {
+  revenue: {
+    total: number
+    monthlyBreakdown: {
+      month: string // Format: "YYYY-MM" (e.g., "2024-11")
+      revenue: number
+      orderCount: number
+    }[]
+    growth: number // Percentage growth vs previous period
+  }
+  quotes: {
+    totalQuotes: number // All quotes provided (orders with quotedPrice)
+    acceptedQuotes: number // Quotes that led to orders
+    acceptanceRate: number // Percentage (acceptedQuotes / totalQuotes)
+    avgQuotePrice: number // Average price of accepted quotes
+    pendingQuotes: number // Quotes awaiting client approval
+  }
+  orders: {
+    totalOrders: number // All orders (any status)
+    completedOrders: number // COMPLETED status only
+    inProgressOrders: number // IN_PROGRESS status
+    monthlyVolume: {
+      month: string // Format: "YYYY-MM"
+      orderCount: number
+    }[]
+  }
+  topServices: {
+    serviceId: string
+    serviceName: string
+    revenue: number // Total from completed orders
+    orderCount: number
+  }[] // Top 10 services by revenue
+}
+
+/**
+ * 🎓 Analytics Timeframe Options
+ * Supported timeframe filters for analytics endpoint
+ */
+export type AnalyticsTimeframe = 'last30days' | 'last90days' | 'thisYear' | 'allTime'
