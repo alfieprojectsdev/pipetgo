@@ -23,7 +23,6 @@ const inter = localFont({
   variable: '--font-inter',
   display: 'swap',
 })
-export const dynamic = 'force-dynamic'
 
 export const dynamic = 'force-dynamic'
 
