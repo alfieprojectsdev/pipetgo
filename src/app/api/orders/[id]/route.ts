@@ -85,16 +85,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const updateData: any = {
+    const updateData = {
       status: validatedData.status,
       updatedAt: new Date(),
-    }
-
-    // Set timestamps based on status
-    if (validatedData.status === 'ACKNOWLEDGED') {
-      updateData.acknowledgedAt = new Date()
-    } else if (validatedData.status === 'COMPLETED') {
-      updateData.completedAt = new Date()
+      ...(validatedData.status === 'ACKNOWLEDGED' && { acknowledgedAt: new Date() }),
+      ...(validatedData.status === 'COMPLETED' && { completedAt: new Date() })
     }
 
     const updatedOrder = await prisma.order.update({

@@ -10,6 +10,12 @@ import { formatCurrency } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
+interface LabLocation {
+  city?: string
+  province?: string
+  country?: string
+}
+
 interface LabService {
   id: string
   name: string
@@ -20,7 +26,7 @@ interface LabService {
   turnaroundDays: number
   lab: {
     name: string
-    location: any
+    location: LabLocation | null
   }
 }
 
@@ -124,7 +130,7 @@ export default function Home() {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">PipetGo</h1>
+            <h1 className="text-2xl font-bold text-gray-900">PipetGo!</h1>
             <Button onClick={() => router.push('/api/auth/signin')}>
               Sign In
             </Button>
@@ -133,7 +139,7 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="bg-blue-600 text-white py-16">
+      <section className="bg-green-600 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold mb-4">
             Find the Right Lab for Your Testing Needs
@@ -141,9 +147,9 @@ export default function Home() {
           <p className="text-xl mb-8">
             Connect with accredited laboratories for food safety, environmental, and chemical analysis
           </p>
-          <Button 
-            size="lg" 
-            className="bg-white text-blue-600 hover:bg-gray-100"
+          <Button
+            size="lg"
+            className="bg-white text-green-600 hover:bg-gray-100"
             onClick={() => router.push('/api/auth/signin')}
           >
             Get Started
@@ -158,7 +164,7 @@ export default function Home() {
 
           {isLoading ? (
             <div className="text-center py-12">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-600 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
               <p className="mt-4 text-gray-600">Loading services...</p>
             </div>
           ) : services.length === 0 ? (
@@ -175,7 +181,7 @@ export default function Home() {
                       <div className="flex justify-between items-start mb-2">
                         <CardTitle className="text-lg">{service.name}</CardTitle>
                         <div className="flex gap-2">
-                          <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
                             {service.category}
                           </span>
                           <Badge variant={getPricingModeVariant(service.pricingMode)}>
@@ -195,7 +201,7 @@ export default function Home() {
                       {service.pricingMode === 'QUOTE_REQUIRED' && (
                         <div className="text-gray-600 mb-4">
                           <p className="flex items-center gap-2">
-                            <span className="text-blue-600">ℹ️</span>
+                            <span className="text-green-600">ℹ️</span>
                             Custom quote required
                           </p>
                           <p className="text-sm">Submit RFQ to get pricing</p>
@@ -278,7 +284,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p>&copy; 2024 PipetGo. Lab Services Marketplace MVP.</p>
+          <p>&copy; 2024 PipetGo!. Lab Services Marketplace MVP.</p>
         </div>
       </footer>
     </div>

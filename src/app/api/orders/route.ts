@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { analytics } from '@/lib/analytics'
+import { OrderStatus } from '@prisma/client'
 import { z } from 'zod'
 
 const createOrderSchema = z.object({
@@ -134,7 +135,11 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status')
 
-    let whereClause: any = {}
+    const whereClause: {
+      clientId?: string
+      labId?: string
+      status?: OrderStatus
+    } = {}
 
     // Filter based on user role
     if (session.user.role === 'CLIENT') {
@@ -151,7 +156,7 @@ export async function GET(request: NextRequest) {
     // ADMIN can see all orders (no additional filter)
 
     if (status) {
-      whereClause.status = status
+      whereClause.status = status as OrderStatus
     }
 
     const orders = await prisma.order.findMany({

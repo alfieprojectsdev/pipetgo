@@ -73,23 +73,19 @@ export async function POST(
 
     // 5. Update order based on approval decision using transaction (P0-2, P0-3)
     // Use atomic updateMany to prevent race condition + ensure data integrity
-    let updateData: any
-
-    if (validatedData.approved) {
-      // Quote approved: Transition to PENDING (ready for lab to acknowledge)
-      updateData = {
-        status: 'PENDING',
-        quoteApprovedAt: new Date(),
-        quoteRejectedReason: null  // Clear any previous rejection reason
-      }
-    } else {
-      // Quote rejected: Transition to QUOTE_REJECTED
-      updateData = {
-        status: 'QUOTE_REJECTED',
-        quoteRejectedReason: validatedData.rejectionReason,
-        quoteRejectedAt: new Date()
-      }
-    }
+    const updateData = validatedData.approved
+      ? {
+          // Quote approved: Transition to PENDING (ready for lab to acknowledge)
+          status: 'PENDING' as const,
+          quoteApprovedAt: new Date(),
+          quoteRejectedReason: null  // Clear any previous rejection reason
+        }
+      : {
+          // Quote rejected: Transition to QUOTE_REJECTED
+          status: 'QUOTE_REJECTED' as const,
+          quoteRejectedReason: validatedData.rejectionReason,
+          quoteRejectedAt: new Date()
+        }
 
     const result = await prisma.$transaction(async (tx) => {
       // Atomic update - only succeeds if status is QUOTE_PROVIDED
