@@ -1,3 +1,4 @@
+// src/app/layout.tsx
 import type { Metadata } from 'next'
 import localFont from 'next/font/local'
 import Script from 'next/script'
@@ -22,10 +23,13 @@ const inter = localFont({
   variable: '--font-inter',
   display: 'swap',
 })
+export const dynamic = 'force-dynamic'
+
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'PipetGo - Lab Services Marketplace',
-  description: 'Connect with certified laboratories for testing services',
+  description: 'Connect with accredited laboratories for testing services',
 }
 
 export default function RootLayout({
