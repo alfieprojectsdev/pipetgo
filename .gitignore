@@ -45,4 +45,4 @@ claude_*.log
 tsconfig.tsbuildinfo
 
 # misc
-docs/terminal_snapshot.txt
+docs/terminal_snapshot.txttmp/
