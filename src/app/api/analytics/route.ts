@@ -19,6 +19,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { OrderStatus } from '@prisma/client'
+import { Decimal } from '@prisma/client/runtime/library'
 
 // Force dynamic rendering (no caching)
 export const dynamic = 'force-dynamic'
@@ -248,10 +249,18 @@ export async function GET(req: Request) {
 // ============================================================================
 
 /**
+ * Order type for analytics calculations
+ */
+interface AnalyticsOrder {
+  createdAt: Date
+  quotedPrice: Decimal | null
+}
+
+/**
  * Calculate monthly breakdown of revenue and order count
  * Returns last N months of data with zero-filled gaps
  */
-function calculateMonthlyBreakdown(orders: any[], months: number) {
+function calculateMonthlyBreakdown(orders: AnalyticsOrder[], months: number) {
   const monthlyData: { [key: string]: { revenue: number; orderCount: number } } = {}
 
   // Initialize last N months with zero values
@@ -287,7 +296,7 @@ function calculateMonthlyBreakdown(orders: any[], months: number) {
  * Calculate monthly volume (order count per month)
  * Returns last N months with zero-filled gaps
  */
-function calculateMonthlyVolume(orders: any[], months: number) {
+function calculateMonthlyVolume(orders: AnalyticsOrder[], months: number) {
   const monthlyData: { [key: string]: number } = {}
 
   // Initialize last N months

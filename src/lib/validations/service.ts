@@ -62,7 +62,10 @@ const baseServiceSchema = z.object({
 })
 
 // Refinement function for pricing validation
-const pricingRefinement = (data: any) => {
+const pricingRefinement = (data: {
+  pricingMode: 'QUOTE_REQUIRED' | 'FIXED' | 'HYBRID'
+  pricePerUnit?: number
+}) => {
   // If pricing mode is FIXED or HYBRID, price is required
   if (data.pricingMode === 'FIXED' || data.pricingMode === 'HYBRID') {
     return data.pricePerUnit !== undefined && data.pricePerUnit !== null

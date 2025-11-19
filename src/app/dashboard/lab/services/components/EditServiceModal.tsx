@@ -92,8 +92,9 @@ export function EditServiceModal({ isOpen, onClose, onSuccess, serviceId }: Edit
       toast.success('Service updated successfully')
       onSuccess()
       onClose()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update service')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to update service'
+      toast.error(message)
     } finally {
       setSubmitting(false)
     }

@@ -10,6 +10,30 @@ import { toast } from '@/lib/toast'
 
 export const dynamic = 'force-dynamic'
 
+interface Attachment {
+  id: string
+  orderId: string
+  uploadedById: string
+  fileName: string
+  fileUrl: string
+  fileType: string
+  fileSize: number | null
+  attachmentType: string
+  createdAt: string
+}
+
+interface ClientDetails {
+  contactEmail?: string
+  contactPhone?: string
+  organization?: string
+  shippingAddress?: {
+    street?: string
+    city?: string
+    postal?: string
+    country?: string
+  }
+}
+
 interface Order {
   id: string
   status: string
@@ -19,8 +43,8 @@ interface Order {
   quotedPrice?: number
   client: { name: string; email: string }
   service: { name: string; category: string }
-  clientDetails: any
-  attachments: any[]
+  clientDetails: ClientDetails
+  attachments: Attachment[]
 }
 
 export default function LabDashboard() {
@@ -57,7 +81,11 @@ export default function LabDashboard() {
     setUpdatingOrder(orderId)
 
     try {
-      const updateData: any = { status: newStatus }
+      const updateData: {
+        status: string
+        resultFileUrl?: string
+        resultFileName?: string
+      } = { status: newStatus }
 
       // Mock file upload for results
       if (withResults) {
