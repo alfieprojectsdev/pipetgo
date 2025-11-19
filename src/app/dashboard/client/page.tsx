@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from '@/components/ui/textarea'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { toast } from '@/lib/toast'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export const dynamic = 'force-dynamic'
 
@@ -172,7 +173,8 @@ export default function ClientDashboard() {
   const selectedOrder = orders.find(o => o.id === selectedOrderId)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
@@ -408,5 +410,6 @@ export default function ClientDashboard() {
         </DialogContent>
       </Dialog>
     </div>
+    </ErrorBoundary>
   )
 }

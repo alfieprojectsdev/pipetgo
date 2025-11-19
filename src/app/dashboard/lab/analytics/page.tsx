@@ -19,6 +19,7 @@ import {
   TopServicesTable
 } from './components'
 import type { AnalyticsData } from '@/types'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,7 +76,8 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -143,5 +145,6 @@ export default function AnalyticsPage() {
         </div>
       </main>
     </div>
+    </ErrorBoundary>
   )
 }
