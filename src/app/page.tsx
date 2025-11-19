@@ -124,7 +124,7 @@ export default function Home() {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">PipetGo</h1>
+            <h1 className="text-2xl font-bold text-gray-900">PipetGo!</h1>
             <Button onClick={() => router.push('/api/auth/signin')}>
               Sign In
             </Button>
@@ -278,7 +278,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p>&copy; 2024 PipetGo. Lab Services Marketplace MVP.</p>
+          <p>&copy; 2024 PipetGo!. Lab Services Marketplace MVP.</p>
         </div>
       </footer>
     </div>

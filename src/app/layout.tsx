@@ -27,7 +27,7 @@ const inter = localFont({
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'PipetGo - Lab Services Marketplace',
+  title: 'PipetGo! - Lab Services Marketplace',
   description: 'Connect with accredited laboratories for testing services',
 }
 
