@@ -24,6 +24,39 @@ import { Decimal } from '@prisma/client/runtime/library'
 // Force dynamic rendering (no caching)
 export const dynamic = 'force-dynamic'
 
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+/**
+ * Order with service relationship for analytics
+ */
+interface OrderWithService {
+  status: OrderStatus
+  quotedPrice: Decimal | null
+  createdAt: Date
+  service: {
+    id: string
+    name: string
+  }
+}
+
+/**
+ * Basic order type for calculations
+ */
+interface BasicOrder {
+  quotedPrice: Decimal | null
+  status: OrderStatus
+}
+
+/**
+ * Monthly data structure
+ */
+interface MonthlyDataEntry {
+  revenue: number
+  orderCount: number
+}
+
 export async function GET(req: Request) {
   try {
     // ========================================================================
@@ -126,8 +159,10 @@ export async function GET(req: Request) {
     // ========================================================================
     // 6. CALCULATE REVENUE METRICS
     // ========================================================================
-    const completedOrders = orders.filter(o => o.status === OrderStatus.COMPLETED)
-    const totalRevenue = completedOrders.reduce((sum, o) => {
+    const completedOrders = orders.filter((o: OrderWithService): o is OrderWithService =>
+      o.status === OrderStatus.COMPLETED
+    )
+    const totalRevenue = completedOrders.reduce((sum: number, o: OrderWithService): number => {
       return sum + (o.quotedPrice ? Number(o.quotedPrice) : 0)
     }, 0)
 
@@ -135,7 +170,7 @@ export async function GET(req: Request) {
     const monthlyRevenue = calculateMonthlyBreakdown(completedOrders, 12)
 
     // Growth calculation (compare to previous period)
-    const previousRevenue = previousPeriodOrders.reduce((sum, o) => {
+    const previousRevenue = previousPeriodOrders.reduce((sum: number, o: BasicOrder): number => {
       return sum + (o.quotedPrice ? Number(o.quotedPrice) : 0)
     }, 0)
 
@@ -162,7 +197,9 @@ export async function GET(req: Request) {
 
     // Average quote price (only accepted quotes)
     const avgQuotePrice = acceptedQuotes.length > 0
-      ? acceptedQuotes.reduce((sum, o) => sum + Number(o.quotedPrice!), 0) / acceptedQuotes.length
+      ? acceptedQuotes.reduce((sum: number, o: OrderWithService): number =>
+          sum + Number(o.quotedPrice!),
+        0) / acceptedQuotes.length
       : 0
 
     const acceptanceRate = ordersWithQuotes.length > 0
@@ -180,7 +217,7 @@ export async function GET(req: Request) {
     // ========================================================================
     const serviceRevenue = new Map<string, { name: string; revenue: number; count: number }>()
 
-    completedOrders.forEach(order => {
+    completedOrders.forEach((order: OrderWithService): void => {
       const serviceId = order.service.id
       const serviceName = order.service.name
       const revenue = order.quotedPrice ? Number(order.quotedPrice) : 0
@@ -260,8 +297,11 @@ interface AnalyticsOrder {
  * Calculate monthly breakdown of revenue and order count
  * Returns last N months of data with zero-filled gaps
  */
-function calculateMonthlyBreakdown(orders: AnalyticsOrder[], months: number) {
-  const monthlyData: { [key: string]: { revenue: number; orderCount: number } } = {}
+function calculateMonthlyBreakdown(
+  orders: AnalyticsOrder[],
+  months: number
+): Array<{ month: string; revenue: number; orderCount: number }> {
+  const monthlyData: { [key: string]: MonthlyDataEntry } = {}
 
   // Initialize last N months with zero values
   const now = new Date()
@@ -272,7 +312,7 @@ function calculateMonthlyBreakdown(orders: AnalyticsOrder[], months: number) {
   }
 
   // Aggregate orders by month
-  orders.forEach(order => {
+  orders.forEach((order: AnalyticsOrder): void => {
     const orderDate = new Date(order.createdAt)
     const monthKey = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}`
 
@@ -284,19 +324,24 @@ function calculateMonthlyBreakdown(orders: AnalyticsOrder[], months: number) {
 
   // Convert to array format and sort by month
   return Object.entries(monthlyData)
-    .map(([month, data]) => ({
+    .map(([month, data]: [string, MonthlyDataEntry]) => ({
       month,
       revenue: data.revenue,
       orderCount: data.orderCount
     }))
-    .sort((a, b) => a.month.localeCompare(b.month))
+    .sort((a: { month: string }, b: { month: string }): number =>
+      a.month.localeCompare(b.month)
+    )
 }
 
 /**
  * Calculate monthly volume (order count per month)
  * Returns last N months with zero-filled gaps
  */
-function calculateMonthlyVolume(orders: AnalyticsOrder[], months: number) {
+function calculateMonthlyVolume(
+  orders: AnalyticsOrder[],
+  months: number
+): Array<{ month: string; orderCount: number }> {
   const monthlyData: { [key: string]: number } = {}
 
   // Initialize last N months
@@ -308,7 +353,7 @@ function calculateMonthlyVolume(orders: AnalyticsOrder[], months: number) {
   }
 
   // Count orders by month
-  orders.forEach(order => {
+  orders.forEach((order: AnalyticsOrder): void => {
     const orderDate = new Date(order.createdAt)
     const monthKey = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}`
 
@@ -319,9 +364,11 @@ function calculateMonthlyVolume(orders: AnalyticsOrder[], months: number) {
 
   // Convert to array format and sort
   return Object.entries(monthlyData)
-    .map(([month, orderCount]) => ({
+    .map(([month, orderCount]: [string, number]) => ({
       month,
       orderCount
     }))
-    .sort((a, b) => a.month.localeCompare(b.month))
+    .sort((a: { month: string }, b: { month: string }): number =>
+      a.month.localeCompare(b.month)
+    )
 }
