@@ -22,6 +22,7 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from './db'
 import type { UserRole } from '@prisma/client'
+import { verifyPassword } from './password'
 
 /**
  * 🎓 NextAuth Options
@@ -35,39 +36,54 @@ export const authOptions: NextAuthOptions = {
   providers: [
     /**
      * 🎓 Credentials Provider
-     * Stage 1: Email-only authentication (MVP simplification)
-     * TODO: Stage 2 - Add password validation with bcrypt
+     * Secure password authentication with bcrypt verification
      */
     CredentialsProvider({
       name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
-        // TODO: Stage 2 - Uncomment and implement password validation
-        // password: { label: 'Password', type: 'password' }
+        password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
-        if (!credentials?.email) {
+        // Check credentials provided
+        if (!credentials?.email || !credentials?.password) {
           return null
         }
 
-        // TODO: Add email validation here
-        // const validation = signInSchema.safeParse(credentials)
-        // if (!validation.success) return null
-
-        // Find user by email
+        // Find user by email (include passwordHash for verification)
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase() }
+          where: { email: credentials.email.toLowerCase() },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            passwordHash: true
+          }
         })
 
+        // Constant-time comparison (prevent timing attacks)
+        // Fake bcrypt hash (12 salt rounds) used when user doesn't exist
+        const FAKE_PASSWORD_HASH = '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYKKhkP.Eim'
+
         if (!user) {
+          // User doesn't exist - run fake verification to prevent timing attack
+          await verifyPassword(credentials.password, FAKE_PASSWORD_HASH)
           return null
         }
 
-        // TODO: Stage 2 - Verify password
-        // const validPassword = await bcrypt.compare(credentials.password, user.passwordHash)
-        // if (!validPassword) return null
+        // Check if user has set a password (backward compatibility for OAuth users)
+        if (!user.passwordHash) {
+          return null
+        }
 
-        // Return user object (will be added to JWT token)
+        // Verify password
+        const validPassword = await verifyPassword(credentials.password, user.passwordHash)
+        if (!validPassword) {
+          return null
+        }
+
+        // Password valid - return user object (will be added to JWT token)
         return {
           id: user.id,
           email: user.email,

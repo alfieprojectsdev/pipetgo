@@ -61,6 +61,8 @@ model User {
   id            String    @id @default(cuid())
   name          String?
   email         String    @unique
+  // Bcrypt password hash (nullable for OAuth-only users)
+  passwordHash  String?
   emailVerified DateTime?
   image         String?
   role          UserRole  @default(CLIENT)
