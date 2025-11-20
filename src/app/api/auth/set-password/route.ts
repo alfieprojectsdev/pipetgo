@@ -1,21 +1,23 @@
 /**
- * Set Password API Endpoint (P0-1 Password Authentication)
- * =========================================================
+ * 🔒 SECURITY: Set Password API Endpoint (P0-1 Password Authentication)
+ * =======================================================================
  * Allows authenticated users with null passwordHash to set a password.
  * Part of the migration strategy for OAuth-only users to password authentication.
  *
  * Security:
  * - User MUST be authenticated (check session)
+ * - Rate limiting: 5 attempts per hour per user ID
  * - Password validated with Zod schema (client + server)
  * - Password hashed with bcrypt (12 salt rounds)
  * - Prevents overwriting existing passwords (409 Conflict)
  *
  * Flow:
  * 1. Check authentication (401 if not logged in)
- * 2. Validate password with passwordSchema
- * 3. Check if user already has passwordHash (409 if yes)
- * 4. Hash password and update user
- * 5. Return success
+ * 2. Rate limiting check (429 if exceeded)
+ * 3. Validate password with passwordSchema
+ * 4. Check if user already has passwordHash (409 if yes)
+ * 5. Hash password and update user
+ * 6. Return success
  */
 
 import { NextRequest } from 'next/server'
@@ -24,6 +26,11 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { hashPassword } from '@/lib/password'
 import { passwordSchema } from '@/lib/validations/auth'
+import {
+  setPasswordRateLimiter,
+  checkRateLimit,
+  createRateLimitResponse
+} from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,7 +40,14 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 2. Parse and validate request
+    // 2. Rate limiting (per user ID)
+    const rateLimit = await checkRateLimit(setPasswordRateLimiter, session.user.id)
+
+    if (rateLimit && !rateLimit.success) {
+      return createRateLimitResponse(rateLimit.retryAfter!)
+    }
+
+    // 3. Parse and validate request
     const body = await req.json()
     const { password } = body
 
@@ -50,7 +64,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    // 3. Check if user already has a password
+    // 4. Check if user already has a password
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { id: true, passwordHash: true }
@@ -66,7 +80,7 @@ export async function POST(req: NextRequest) {
       }, { status: 409 })
     }
 
-    // 4. Hash password and update user
+    // 5. Hash password and update user
     const hashedPassword = await hashPassword(password)
 
     await prisma.user.update({
