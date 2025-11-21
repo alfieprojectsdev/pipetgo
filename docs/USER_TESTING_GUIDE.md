@@ -1,8 +1,8 @@
 # PipetGo User Testing Guide
 ## For CEO's Friends - November 2025
 
-**Testing URL**: https://pipetgo-git-claude-testing-nov25-011cut9uf3dhjrqck8rf54s4.vercel.app
-*(Vercel preview deployment from testing branch)*
+**Testing URL**: https://www.pipetgo.com/
+*(Production deployment)*
 
 ---
 
@@ -110,6 +110,73 @@ PipetGo is a B2B marketplace connecting businesses with ISO 17025 accredited lab
    - See status change to "Quote Rejected" (red badge)
    - **WHAT TO CHECK**: Clear that this RFQ is closed?
 
+### Scenario 5: Lab Admin Manages Service Catalog
+**Role**: Lab Admin
+
+1. **Navigate to Service Management**
+   - Sign in as lab admin
+   - Go to Lab Dashboard → Services (or directly to `/dashboard/lab/services`)
+   - See table of existing services with columns: Name, Category, Pricing Mode, Price, Status
+   - **WHAT TO CHECK**: Can you see all your lab's services? Is the table easy to scan?
+
+2. **Add a New Service**
+   - Click "Add Service" button
+   - Fill out service form:
+     - **Name**: e.g., "Heavy Metals Analysis (Lead, Mercury, Cadmium)"
+     - **Category**: Select from dropdown (Chemical Analysis, Microbiological Testing, etc.)
+     - **Pricing Mode**: Choose one:
+       - QUOTE_REQUIRED - Client must request quote (no fixed price shown)
+       - FIXED - Show fixed price to clients
+       - HYBRID - Show base price but allow custom quotes
+     - **Price** (if FIXED or HYBRID): e.g., ₱5,000.00
+     - **Turnaround Days**: e.g., 7
+     - **Description**: What the test includes, sample requirements
+   - Click "Create Service"
+   - **WHAT TO CHECK**: Is the form clear? Do you understand what each pricing mode means?
+
+3. **Verify Service Created**
+   - See new service appear in the table
+   - Status shows "Active" (green badge)
+   - **WHAT TO CHECK**: Easy to confirm the service was added?
+
+4. **Test Bulk Operations**
+   - Select multiple services using checkboxes
+   - Use "Enable Selected" or "Disable Selected" buttons
+   - See status change for all selected services
+   - **WHAT TO CHECK**: Can you quickly enable/disable multiple services at once?
+
+5. **Edit an Existing Service**
+   - Click the edit icon (pencil) on any service row
+   - Modify any field (e.g., update price or turnaround time)
+   - Save changes
+   - **WHAT TO CHECK**: Easy to update service details?
+
+6. **Toggle Service Status**
+   - Click the toggle switch to deactivate a service
+   - Service status changes to "Inactive" (gray badge)
+   - Inactive services won't appear to clients on the homepage
+   - **WHAT TO CHECK**: Clear visual feedback when toggling?
+
+### Scenario 6: Lab Admin Views Analytics Dashboard
+**Role**: Lab Admin
+
+1. **Navigate to Analytics**
+   - Go to Lab Dashboard → Analytics (or directly to `/dashboard/lab/analytics`)
+   - **WHAT TO CHECK**: Easy to find the analytics section?
+
+2. **Review Dashboard Metrics**
+   - See overview cards: Total Revenue, Total Orders, Pending Quotes, etc.
+   - View Revenue Chart showing income over time
+   - View Quote Metrics (acceptance rate, average response time)
+   - View Order Volume trends
+   - See Top Services table (which services generate most revenue)
+   - **WHAT TO CHECK**: Is the data useful? Any metrics missing that you'd want to see?
+
+3. **Interact with Charts**
+   - Hover over chart elements for detailed values
+   - Check date ranges if available
+   - **WHAT TO CHECK**: Are charts easy to understand?
+
 ---
 
 ## 🐛 What to Report
@@ -119,6 +186,7 @@ PipetGo is a B2B marketplace connecting businesses with ISO 17025 accredited lab
 - ❌ Can't submit RFQ
 - ❌ Can't provide quote
 - ❌ Can't approve/reject quote
+- ❌ Can't add/edit services
 - ❌ Page crashes or shows error
 
 ### Important Issues (Confusing UX)
@@ -174,18 +242,20 @@ PipetGo is a B2B marketplace connecting businesses with ISO 17025 accredited lab
 2. **Quote Provision Flow**: Can labs easily provide quotes?
 3. **Quote Review Flow**: Can clients easily approve/reject quotes?
 4. **Status Clarity**: Do you understand what each order status means?
+5. **Service Management**: Can labs easily add/edit services?
+6. **Analytics**: Is the dashboard data useful for lab admins?
 
 ### Secondary Focus
-5. **Mobile Usability**: Does it work well on your phone?
-6. **Error Handling**: If something goes wrong, is the error message helpful?
-7. **Loading States**: Any confusingly long waits without feedback?
+7. **Mobile Usability**: Does it work well on your phone?
+8. **Error Handling**: If something goes wrong, is the error message helpful?
+9. **Loading States**: Any confusingly long waits without feedback?
 
 ---
 
 ## ⏱️ Estimated Testing Time
 
-- **Quick Test** (happy path only): 10-15 minutes
-- **Thorough Test** (including edge cases): 30-45 minutes
+- **Quick Test** (happy path only): 15-20 minutes
+- **Thorough Test** (including edge cases): 45-60 minutes
 
 ---
 
@@ -215,6 +285,9 @@ A: Yes, test data persists during testing period. But it will be reset before pr
 
 **Q: Can I test on my phone?**
 A: Yes! Mobile testing is valuable. Please note device/browser in feedback.
+
+**Q: How do I add services as a lab admin?**
+A: Go to Lab Dashboard → Services. Click "Add Service" to create your lab's service catalog. You can set pricing mode (quote required, fixed price, or hybrid), turnaround time, and description for each service.
 
 ---
 
