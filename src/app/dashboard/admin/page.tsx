@@ -193,7 +193,11 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             {orders.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No orders in the system yet</p>
+              <div className="text-center py-12">
+                <div className="text-4xl mb-4" aria-hidden="true">📊</div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No platform activity yet</h3>
+                <p className="text-gray-500">Orders will appear here as users submit requests.</p>
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
