@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -233,7 +233,12 @@ export default function Home() {
                       </div>
 
                       <Button
-                        className="w-full"
+                        className={cn(
+                          "w-full",
+                          service.pricingMode === 'QUOTE_REQUIRED' && "bg-blue-600 hover:bg-blue-700",
+                          service.pricingMode === 'FIXED' && "bg-green-600 hover:bg-green-700",
+                          service.pricingMode === 'HYBRID' && "bg-purple-600 hover:bg-purple-700"
+                        )}
                         onClick={() => handleOrderService(service.id)}
                       >
                         {service.pricingMode === 'QUOTE_REQUIRED'
