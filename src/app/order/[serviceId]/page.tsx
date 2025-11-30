@@ -159,7 +159,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
           </Button>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           {/* Service Details */}
           <Card>
             <CardHeader>
@@ -177,7 +177,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                 <p className="text-gray-700">{service.sampleRequirements}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-medium text-gray-900">Price</h4>
                   {service.pricingMode === 'QUOTE_REQUIRED' ? (

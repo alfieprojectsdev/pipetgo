@@ -135,6 +135,7 @@ export default function LabDashboard() {
           <Button
             size="sm"
             onClick={() => window.location.href = `/dashboard/lab/orders/${order.id}/quote`}
+            className="w-full sm:w-auto min-h-[44px]"
           >
             Provide Quote
           </Button>
@@ -145,6 +146,7 @@ export default function LabDashboard() {
             size="sm"
             onClick={() => updateOrderStatus(order.id, 'ACKNOWLEDGED')}
             disabled={updatingOrder === order.id}
+            className="w-full sm:w-auto min-h-[44px]"
           >
             {updatingOrder === order.id ? 'Acknowledging...' : 'Acknowledge Order'}
           </Button>
@@ -155,6 +157,7 @@ export default function LabDashboard() {
             size="sm"
             onClick={() => updateOrderStatus(order.id, 'IN_PROGRESS')}
             disabled={updatingOrder === order.id}
+            className="w-full sm:w-auto min-h-[44px]"
           >
             {updatingOrder === order.id ? 'Starting...' : 'Start Testing'}
           </Button>
@@ -165,6 +168,7 @@ export default function LabDashboard() {
             size="sm"
             onClick={() => updateOrderStatus(order.id, 'COMPLETED', true)}
             disabled={updatingOrder === order.id}
+            className="w-full sm:w-auto min-h-[44px]"
           >
             {updatingOrder === order.id ? 'Uploading...' : 'Upload Results'}
           </Button>
@@ -183,14 +187,15 @@ export default function LabDashboard() {
       <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Lab Dashboard</h1>
-              <p className="text-gray-600">Metro Manila Testing Laboratory</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Lab Dashboard</h1>
+              <p className="text-gray-600 text-sm sm:text-base">Metro Manila Testing Laboratory</p>
             </div>
             <Button
               variant="outline"
               onClick={() => signOut({ callbackUrl: '/' })}
+              className="text-sm sm:text-base min-h-[44px]"
             >
               Sign Out
             </Button>
@@ -200,7 +205,7 @@ export default function LabDashboard() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Quick Stats */}
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8">
           <Card>
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-green-600">
@@ -242,7 +247,12 @@ export default function LabDashboard() {
           {orders.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
-                <p className="text-gray-500">No orders yet</p>
+                <div className="text-4xl mb-4" aria-hidden="true">📋</div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No test requests yet</h3>
+                <p className="text-gray-500 mb-4">Your lab&apos;s orders will appear here when clients submit requests.</p>
+                <Button onClick={() => router.push('/dashboard/lab/services')}>
+                  Manage Services
+                </Button>
               </CardContent>
             </Card>
           ) : (
@@ -298,11 +308,13 @@ export default function LabDashboard() {
                         </div>
                       </div>
 
-                      <div className="flex justify-between items-center pt-2">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-2">
                         <div className="text-sm text-gray-500">
                           Order #{order.id.substring(0, 8)}
                         </div>
-                        {getNextActions(order)}
+                        <div className="w-full sm:w-auto">
+                          {getNextActions(order)}
+                        </div>
                       </div>
                     </div>
                   </CardContent>
