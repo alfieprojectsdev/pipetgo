@@ -147,7 +147,7 @@ export default function QuoteProvisionPage({ params }: { params: { id: string } 
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Order Details</CardTitle>
-          <CardDescription>Review the client's request before providing a quote</CardDescription>
+          <CardDescription>Review the client&apos;s request before providing a quote</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
