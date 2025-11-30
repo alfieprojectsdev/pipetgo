@@ -14,6 +14,26 @@
 import { z } from 'zod'
 
 /**
+ * Password Validation Schema (P0-1 Password Authentication)
+ * ==========================================================
+ * Reusable password validation for signin, signup, and password reset flows.
+ *
+ * Requirements:
+ * - Length: 8-72 characters (72 is bcrypt's technical limit)
+ * - Complexity: At least 1 uppercase, 1 lowercase, 1 number
+ * - User-friendly error messages for each requirement
+ */
+export const passwordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .max(72, 'Password must be less than 72 characters')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+  .regex(/[0-9]/, 'Password must contain at least one number')
+
+export type PasswordInput = z.infer<typeof passwordSchema>
+
+/**
  * 🎓 Sign In Schema
  * Stage 1: Email-only authentication (MVP simplification)
  * Stage 2: Add password validation

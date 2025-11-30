@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic'
 
 export default function SignIn() {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
@@ -20,7 +21,7 @@ export default function SignIn() {
     try {
       const result = await signIn('credentials', {
         email,
-        password: 'dummy', // MVP: no real password validation
+        password,
         redirect: false,
       })
 
@@ -35,7 +36,7 @@ export default function SignIn() {
           router.push('/dashboard/client')
         }
       } else {
-        alert('User not found. Please use one of the demo accounts.')
+        alert('Invalid email or password. Please check your credentials and try again.')
       }
     } catch (error) {
       console.error('Sign in error:', error)
@@ -78,6 +79,20 @@ export default function SignIn() {
                 required
               />
             </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium mb-1">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                required
+                autoComplete="current-password"
+              />
+            </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
@@ -85,6 +100,9 @@ export default function SignIn() {
 
           <div className="mt-6">
             <h3 className="text-sm font-medium mb-2">Demo Accounts:</h3>
+            <p className="text-xs text-gray-600 mb-2">
+              Click to fill email. Password required for secure login.
+            </p>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {demoAccounts.map((account) => (
                 <button
