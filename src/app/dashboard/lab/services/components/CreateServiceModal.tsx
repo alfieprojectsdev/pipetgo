@@ -67,7 +67,7 @@ export function CreateServiceModal({ isOpen, onClose, onSuccess }: CreateService
         <DialogHeader>
           <DialogTitle>Create New Service</DialogTitle>
           <DialogDescription>
-            Add a new testing service to your lab's catalog
+            Add a new testing service to your lab&apos;s catalog
           </DialogDescription>
         </DialogHeader>
 

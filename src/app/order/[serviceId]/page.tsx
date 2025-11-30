@@ -261,7 +261,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                     <AlertDescription>
                       <span className="text-green-600 font-medium">ℹ️ Custom quote required</span>
                       <p className="text-sm mt-1">
-                        You'll submit an RFQ and receive a custom quote from the lab within 24-48 hours.
+                        You&apos;ll submit an RFQ and receive a custom quote from the lab within 24-48 hours.
                       </p>
                     </AlertDescription>
                   </Alert>
@@ -287,7 +287,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                         <AlertDescription>
                           <span className="text-green-600 font-medium">ℹ️ Custom quote</span>
                           <p className="text-sm mt-1">
-                            You'll submit an RFQ and receive a custom quote from the lab.
+                            You&apos;ll submit an RFQ and receive a custom quote from the lab.
                           </p>
                         </AlertDescription>
                       </Alert>
@@ -296,7 +296,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                         <AlertDescription>
                           <span className="text-green-600 font-medium">✓ Instant booking</span>
                           <p className="text-sm mt-1">
-                            You'll book at the reference price: {service.pricePerUnit ? formatCurrency(service.pricePerUnit) : 'N/A'}
+                            You&apos;ll book at the reference price: {service.pricePerUnit ? formatCurrency(service.pricePerUnit) : 'N/A'}
                           </p>
                         </AlertDescription>
                       </Alert>

@@ -43,7 +43,7 @@ export default function ServicesPage() {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Manage Services</h1>
-              <p className="text-gray-600">Create and manage your lab's service catalog</p>
+              <p className="text-gray-600">Create and manage your lab&apos;s service catalog</p>
             </div>
             <Button onClick={() => setIsCreateModalOpen(true)}>
               Add Service
