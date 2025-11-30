@@ -120,7 +120,7 @@ describe('OrderTimeline', () => {
           status={OrderStatus.COMPLETED}
           createdAt="2024-11-18T10:00:00Z"
           acknowledgedAt="2024-11-18T12:00:00Z"
-          completedAt="2024-11-20T16:00:00Z"
+          completedAt="2024-11-20T02:00:00Z"
         />
       )
       expect(screen.getByText(/November 20/)).toBeInTheDocument()
