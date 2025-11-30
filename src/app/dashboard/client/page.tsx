@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate, getStatusColor, getStatusDisplayName } from '@/lib/utils'
+import { OrderStatus } from '@/types'
 import { toast } from '@/lib/toast'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 
@@ -136,35 +137,7 @@ export default function ClientDashboard() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    const colors = {
-      QUOTE_REQUESTED: 'bg-yellow-100 text-yellow-900',
-      QUOTE_PROVIDED: 'bg-green-100 text-green-900',
-      QUOTE_APPROVED: 'bg-green-100 text-green-900',
-      QUOTE_REJECTED: 'bg-red-100 text-red-900',
-      PENDING: 'bg-yellow-100 text-yellow-900',
-      ACKNOWLEDGED: 'bg-green-100 text-green-900',
-      IN_PROGRESS: 'bg-purple-100 text-purple-900',
-      COMPLETED: 'bg-green-100 text-green-900',
-      CANCELLED: 'bg-red-100 text-red-900'
-    }
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-900'
-  }
-
-  const getStatusText = (status: string) => {
-    const texts = {
-      QUOTE_REQUESTED: 'Awaiting Quote',
-      QUOTE_PROVIDED: 'Quote Ready for Review',
-      QUOTE_APPROVED: 'Quote Approved',
-      QUOTE_REJECTED: 'Quote Rejected',
-      PENDING: 'Pending Lab Review',
-      ACKNOWLEDGED: 'Lab Acknowledged',
-      IN_PROGRESS: 'Testing in Progress',
-      COMPLETED: 'Results Available',
-      CANCELLED: 'Cancelled'
-    }
-    return texts[status as keyof typeof texts] || status
-  }
+  // Status functions removed - using centralized getStatusColor() and getStatusDisplayName() from utils.ts
 
   if (status === 'loading' || isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
@@ -217,20 +190,23 @@ export default function ClientDashboard() {
             <div className="grid gap-4">
               {orders.map((order) => (
                 <Card key={order.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-lg">{order.service.name}</CardTitle>
-                        <CardDescription>
-                          {order.lab.name} • {order.service.category}
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="min-w-0 flex-1">
+                        {/* v0.app UX: Lab name at top for quick scanning */}
+                        <CardTitle className="text-base font-bold text-gray-900 truncate">
+                          {order.lab.name}
+                        </CardTitle>
+                        <CardDescription className="text-sm text-gray-600 mt-1">
+                          {order.service.name} • {order.service.category}
                         </CardDescription>
                       </div>
                       <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${getStatusColor(order.status as OrderStatus)}`}
                         role="status"
-                        aria-label={`Order status: ${getStatusText(order.status)}`}
+                        aria-label={`Order status: ${getStatusDisplayName(order.status as OrderStatus)}`}
                       >
-                        {getStatusText(order.status)}
+                        {getStatusDisplayName(order.status as OrderStatus)}
                       </span>
                     </div>
                   </CardHeader>

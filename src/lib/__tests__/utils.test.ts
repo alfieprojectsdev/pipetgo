@@ -217,14 +217,15 @@ describe('getStatusColor()', () => {
 })
 
 describe('getStatusDisplayName()', () => {
+  // v0.app UX: Updated to user-friendly status names
   it('should return human-readable name for PENDING', () => {
     const result = getStatusDisplayName(OrderStatus.PENDING)
-    expect(result).toBe('Pending')
+    expect(result).toBe('Pending Review')
   })
 
   it('should return human-readable name for IN_PROGRESS', () => {
     const result = getStatusDisplayName(OrderStatus.IN_PROGRESS)
-    expect(result).toBe('In Progress')
+    expect(result).toBe('Testing in Progress')
   })
 
   it('should handle all statuses', () => {

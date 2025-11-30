@@ -95,11 +95,18 @@ export function formatFileSize(bytes: number | null | undefined): string {
 /**
  * 🎓 Get Status Badge Color
  * Returns Tailwind classes for order status badges
+ *
+ * v0.app UX Recommendation: Standardized color system
+ * - Blue: Awaiting action (quote requested, acknowledged)
+ * - Yellow: Pending review
+ * - Purple: Active work in progress
+ * - Green: Positive outcomes (quote provided, completed)
+ * - Red/Gray: Negative outcomes (rejected, cancelled)
  */
 export function getStatusColor(status: OrderStatus): string {
   const colors: Record<OrderStatus, string> = {
-    [OrderStatus.QUOTE_REQUESTED]: 'bg-orange-100 text-orange-800 border-orange-200',
-    [OrderStatus.QUOTE_PROVIDED]: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    [OrderStatus.QUOTE_REQUESTED]: 'bg-blue-100 text-blue-800 border-blue-200',
+    [OrderStatus.QUOTE_PROVIDED]: 'bg-emerald-100 text-emerald-800 border-emerald-200',
     [OrderStatus.QUOTE_REJECTED]: 'bg-gray-100 text-gray-800 border-gray-200',
     [OrderStatus.PENDING]: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     [OrderStatus.ACKNOWLEDGED]: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -112,17 +119,17 @@ export function getStatusColor(status: OrderStatus): string {
 
 /**
  * 🎓 Get Status Display Name
- * Converts ENUM to readable text
+ * User-friendly status text (v0.app UX recommendation)
  */
 export function getStatusDisplayName(status: OrderStatus): string {
   const names: Record<OrderStatus, string> = {
-    [OrderStatus.QUOTE_REQUESTED]: 'Quote Requested',
-    [OrderStatus.QUOTE_PROVIDED]: 'Quote Provided',
-    [OrderStatus.QUOTE_REJECTED]: 'Quote Rejected',
-    [OrderStatus.PENDING]: 'Pending',
-    [OrderStatus.ACKNOWLEDGED]: 'Acknowledged',
-    [OrderStatus.IN_PROGRESS]: 'In Progress',
-    [OrderStatus.COMPLETED]: 'Completed',
+    [OrderStatus.QUOTE_REQUESTED]: 'Awaiting Quote',
+    [OrderStatus.QUOTE_PROVIDED]: 'Quote Ready',
+    [OrderStatus.QUOTE_REJECTED]: 'Quote Declined',
+    [OrderStatus.PENDING]: 'Pending Review',
+    [OrderStatus.ACKNOWLEDGED]: 'Lab Acknowledged',
+    [OrderStatus.IN_PROGRESS]: 'Testing in Progress',
+    [OrderStatus.COMPLETED]: 'Results Available',
     [OrderStatus.CANCELLED]: 'Cancelled',
   }
   return names[status] || status
