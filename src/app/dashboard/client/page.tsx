@@ -150,21 +150,23 @@ export default function ClientDashboard() {
       <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Client Dashboard</h1>
-              <p className="text-gray-600">Welcome, {session?.user?.name}</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Client Dashboard</h1>
+              <p className="text-gray-600 text-sm sm:text-base">Welcome, {session?.user?.name}</p>
             </div>
-            <div className="space-x-2">
-              <Button 
-                variant="outline" 
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
                 onClick={() => router.push('/')}
+                className="text-sm sm:text-base"
               >
                 Browse Services
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => signOut({ callbackUrl: '/' })}
+                className="text-sm sm:text-base"
               >
                 Sign Out
               </Button>
@@ -258,11 +260,11 @@ export default function ClientDashboard() {
                                 )}
                               </div>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex flex-col sm:flex-row gap-2">
                               <Button
                                 size="sm"
                                 onClick={() => openApprovalDialog(order.id)}
-                                className="bg-green-600 hover:bg-green-700 text-white focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
+                                className="bg-green-600 hover:bg-green-700 text-white focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 w-full sm:w-auto min-h-[44px]"
                               >
                                 Approve Quote
                               </Button>
@@ -270,7 +272,7 @@ export default function ClientDashboard() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => openRejectionDialog(order.id)}
-                                className="border-red-300 text-red-700 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                                className="border-red-300 text-red-700 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 w-full sm:w-auto min-h-[44px]"
                               >
                                 Reject Quote
                               </Button>
@@ -287,7 +289,7 @@ export default function ClientDashboard() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-green-600">

@@ -139,17 +139,17 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="bg-green-600 text-white py-16">
+      <section className="bg-green-600 text-white py-10 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold mb-4">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4">
             Find the Right Lab for Your Testing Needs
           </h2>
-          <p className="text-xl mb-8">
+          <p className="text-base sm:text-lg lg:text-xl mb-6 sm:mb-8">
             Connect with accredited laboratories for food safety, environmental, and chemical analysis
           </p>
           <Button
             size="lg"
-            className="bg-white text-green-600 hover:bg-gray-100"
+            className="bg-white text-green-600 hover:bg-gray-100 min-h-[44px] w-full sm:w-auto"
             onClick={() => router.push('/api/auth/signin')}
           >
             Get Started
@@ -178,13 +178,13 @@ export default function Home() {
                 {services.map((service) => (
                   <Card key={service.id} className="h-full">
                     <CardHeader>
-                      <div className="flex justify-between items-start mb-2">
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-2">
                         <CardTitle className="text-lg">{service.name}</CardTitle>
-                        <div className="flex gap-2">
-                          <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                        <div className="flex flex-wrap gap-2">
+                          <span className="text-xs sm:text-sm bg-green-100 text-green-800 px-2 py-1 rounded whitespace-nowrap">
                             {service.category}
                           </span>
-                          <Badge variant={getPricingModeVariant(service.pricingMode)}>
+                          <Badge variant={getPricingModeVariant(service.pricingMode)} className="whitespace-nowrap">
                             {getPricingModeLabel(service.pricingMode)}
                           </Badge>
                         </div>
@@ -210,9 +210,9 @@ export default function Home() {
 
                       {service.pricingMode === 'FIXED' && (
                         <div className="mb-4">
-                          <div className="flex justify-between">
+                          <div className="flex flex-col sm:flex-row justify-between gap-1">
                             <span className="font-medium">Price:</span>
-                            <span className="text-xl font-bold text-green-600">
+                            <span className="text-lg sm:text-xl font-bold text-green-600">
                               {formatCurrency(service.pricePerUnit!)} per sample
                             </span>
                           </div>
@@ -227,7 +227,7 @@ export default function Home() {
                         </div>
                       )}
 
-                      <div className="flex justify-between mb-4">
+                      <div className="flex flex-col sm:flex-row justify-between gap-1 mb-4">
                         <span className="font-medium">Turnaround:</span>
                         <span>{service.turnaroundDays} days</span>
                       </div>
@@ -254,16 +254,17 @@ export default function Home() {
 
               {/* Pagination Controls */}
               {pagination.totalPages > 1 && (
-                <div className="mt-12 flex justify-center items-center gap-4">
+                <div className="mt-12 flex flex-col sm:flex-row justify-center items-center gap-4">
                   <Button
                     variant="outline"
                     onClick={handlePrevPage}
                     disabled={pagination.page === 1}
+                    className="w-full sm:w-auto min-h-[44px]"
                   >
                     Previous
                   </Button>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-center">
                     <span className="text-gray-700">
                       Page {pagination.page} of {pagination.totalPages}
                     </span>
@@ -276,6 +277,7 @@ export default function Home() {
                     variant="outline"
                     onClick={handleNextPage}
                     disabled={!pagination.hasMore}
+                    className="w-full sm:w-auto min-h-[44px]"
                   >
                     Next
                   </Button>
