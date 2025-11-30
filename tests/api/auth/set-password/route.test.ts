@@ -4,7 +4,7 @@
  * Tests POST /api/auth/set-password endpoint for password creation.
  *
  * Test Coverage:
- * - Successful password setting for authenticated users with null passwordHash
+ * - Successful password setting for authenticated users with null hashedPassword
  * - Authorization checks (authenticated users only)
  * - Validation (password complexity requirements)
  * - Business logic (prevent overwriting existing passwords)
@@ -53,14 +53,14 @@ describe('POST /api/auth/set-password', () => {
   // SUCCESSFUL PASSWORD SETTING TESTS
   // ============================================================================
   describe('Successful Password Setting', () => {
-    it('should set password for authenticated user with null passwordHash', async () => {
+    it('should set password for authenticated user with null hashedPassword', async () => {
       const session = {
         user: { id: 'user-1', email: 'test@example.com', role: 'CLIENT' }
       }
 
       const mockUser = {
         id: 'user-1',
-        passwordHash: null
+        hashedPassword: null
       }
 
       vi.mocked(getServerSession).mockResolvedValue(session as any)
@@ -68,7 +68,7 @@ describe('POST /api/auth/set-password', () => {
       vi.mocked(hashPassword).mockResolvedValue('$2a$12$hashedPassword')
       vi.mocked(prisma.user.update).mockResolvedValue({
         id: 'user-1',
-        passwordHash: '$2a$12$hashedPassword'
+        hashedPassword: '$2a$12$hashedPassword'
       } as any)
 
       const request = new Request('http://localhost:3000/api/auth/set-password', {
@@ -87,7 +87,7 @@ describe('POST /api/auth/set-password', () => {
       expect(hashPassword).toHaveBeenCalledWith('ValidPass123')
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },
-        data: { passwordHash: '$2a$12$hashedPassword' }
+        data: { hashedPassword: '$2a$12$hashedPassword' }
       })
     })
 
@@ -98,7 +98,7 @@ describe('POST /api/auth/set-password', () => {
 
       const mockUser = {
         id: 'lab-1',
-        passwordHash: null
+        hashedPassword: null
       }
 
       vi.mocked(getServerSession).mockResolvedValue(session as any)
@@ -126,7 +126,7 @@ describe('POST /api/auth/set-password', () => {
 
       const mockUser = {
         id: 'user-1',
-        passwordHash: null
+        hashedPassword: null
       }
 
       vi.mocked(getServerSession).mockResolvedValue(session as any)
@@ -153,7 +153,7 @@ describe('POST /api/auth/set-password', () => {
 
       const mockUser = {
         id: 'user-1',
-        passwordHash: null
+        hashedPassword: null
       }
 
       vi.mocked(getServerSession).mockResolvedValue(session as any)
@@ -430,7 +430,7 @@ describe('POST /api/auth/set-password', () => {
 
       const mockUser = {
         id: 'user-1',
-        passwordHash: '$2a$12$existingHash' // Already has password
+        hashedPassword: '$2a$12$existingHash' // Already has password
       }
 
       vi.mocked(getServerSession).mockResolvedValue(session as any)
@@ -489,7 +489,7 @@ describe('POST /api/auth/set-password', () => {
 
       const mockUser = {
         id: 'user-1',
-        passwordHash: null
+        hashedPassword: null
       }
 
       vi.mocked(getServerSession).mockResolvedValue(session as any)
@@ -511,7 +511,7 @@ describe('POST /api/auth/set-password', () => {
       // Should store the HASHED password (NOT plain text)
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },
-        data: { passwordHash: '$2a$12$secureHash' }
+        data: { hashedPassword: '$2a$12$secureHash' }
       })
     })
 
@@ -522,7 +522,7 @@ describe('POST /api/auth/set-password', () => {
 
       const mockUser = {
         id: 'user-123',
-        passwordHash: null
+        hashedPassword: null
       }
 
       vi.mocked(getServerSession).mockResolvedValue(session as any)
@@ -541,7 +541,7 @@ describe('POST /api/auth/set-password', () => {
       // CRITICAL: Should lookup user by session.user.id
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: { id: 'user-123' },
-        select: { id: true, passwordHash: true }
+        select: { id: true, hashedPassword: true }
       })
 
       // CRITICAL: Should update user by session.user.id
@@ -563,7 +563,7 @@ describe('POST /api/auth/set-password', () => {
 
       const mockUser = {
         id: 'user-1',
-        passwordHash: null
+        hashedPassword: null
       }
 
       vi.mocked(getServerSession).mockResolvedValue(session as any)
@@ -593,7 +593,7 @@ describe('POST /api/auth/set-password', () => {
 
       const mockUser = {
         id: 'user-1',
-        passwordHash: null
+        hashedPassword: null
       }
 
       vi.mocked(getServerSession).mockResolvedValue(session as any)
@@ -664,14 +664,14 @@ describe('POST /api/auth/set-password', () => {
   // EDGE CASES
   // ============================================================================
   describe('Edge Cases', () => {
-    it('should handle user with empty string passwordHash', async () => {
+    it('should handle user with empty string hashedPassword', async () => {
       const session = {
         user: { id: 'user-1', email: 'test@example.com', role: 'CLIENT' }
       }
 
       const mockUser = {
         id: 'user-1',
-        passwordHash: '' // Empty string (edge case - treated as falsy)
+        hashedPassword: '' // Empty string (edge case - treated as falsy)
       }
 
       vi.mocked(getServerSession).mockResolvedValue(session as any)
@@ -703,7 +703,7 @@ describe('POST /api/auth/set-password', () => {
 
       const mockUser = {
         id: 'user-1',
-        passwordHash: null
+        hashedPassword: null
       }
 
       vi.mocked(getServerSession).mockResolvedValue(session as any)
@@ -735,7 +735,7 @@ describe('POST /api/auth/set-password', () => {
 
       const mockUser = {
         id: 'user-1',
-        passwordHash: null
+        hashedPassword: null
       }
 
       vi.mocked(getServerSession).mockResolvedValue(session as any)
@@ -763,7 +763,7 @@ describe('POST /api/auth/set-password', () => {
 
       const mockUser = {
         id: 'user-1',
-        passwordHash: null
+        hashedPassword: null
       }
 
       vi.mocked(getServerSession).mockResolvedValue(session as any)
@@ -794,7 +794,7 @@ describe('POST /api/auth/set-password', () => {
 
       const mockUser1 = {
         id: 'user-1',
-        passwordHash: null
+        hashedPassword: null
       }
 
       vi.mocked(getServerSession).mockResolvedValue(session1 as any)
@@ -818,7 +818,7 @@ describe('POST /api/auth/set-password', () => {
 
       const mockUser2 = {
         id: 'user-2',
-        passwordHash: null
+        hashedPassword: null
       }
 
       vi.mocked(getServerSession).mockResolvedValue(session2 as any)
@@ -884,7 +884,7 @@ describe('POST /api/auth/set-password', () => {
 
       const mockUser = {
         id: 'user-specific-id',
-        passwordHash: null
+        hashedPassword: null
       }
 
       vi.mocked(getServerSession).mockResolvedValue(session as any)

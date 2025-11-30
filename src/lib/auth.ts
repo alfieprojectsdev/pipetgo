@@ -50,7 +50,7 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        // Find user by email (include passwordHash for verification)
+        // Find user by email (include hashedPassword for verification)
         const user = await prisma.user.findUnique({
           where: { email: credentials.email.toLowerCase() },
           select: {
@@ -58,7 +58,7 @@ export const authOptions: NextAuthOptions = {
             email: true,
             name: true,
             role: true,
-            passwordHash: true
+            hashedPassword: true
           }
         })
 
@@ -73,12 +73,12 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Check if user has set a password (backward compatibility for OAuth users)
-        if (!user.passwordHash) {
+        if (!user.hashedPassword) {
           return null
         }
 
         // Verify password
-        const validPassword = await verifyPassword(credentials.password, user.passwordHash)
+        const validPassword = await verifyPassword(credentials.password, user.hashedPassword)
         if (!validPassword) {
           return null
         }
