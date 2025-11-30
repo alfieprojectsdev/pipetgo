@@ -1,7 +1,7 @@
 /**
  * 🔒 SECURITY: Set Password API Endpoint (P0-1 Password Authentication)
  * =======================================================================
- * Allows authenticated users with null passwordHash to set a password.
+ * Allows authenticated users with null hashedPassword to set a password.
  * Part of the migration strategy for OAuth-only users to password authentication.
  *
  * Security:
@@ -15,7 +15,7 @@
  * 1. Check authentication (401 if not logged in)
  * 2. Rate limiting check (429 if exceeded)
  * 3. Validate password with passwordSchema
- * 4. Check if user already has passwordHash (409 if yes)
+ * 4. Check if user already has hashedPassword (409 if yes)
  * 5. Hash password and update user
  * 6. Return success
  */
@@ -67,14 +67,14 @@ export async function POST(req: NextRequest) {
     // 4. Check if user already has a password
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { id: true, passwordHash: true }
+      select: { id: true, hashedPassword: true }
     })
 
     if (!user) {
       return Response.json({ error: 'User not found' }, { status: 404 })
     }
 
-    if (user.passwordHash) {
+    if (user.hashedPassword) {
       return Response.json({
         error: 'Password already set. Use password reset instead.'
       }, { status: 409 })
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
 
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { passwordHash: hashedPassword }
+      data: { hashedPassword: hashedPassword }
     })
 
     return Response.json({

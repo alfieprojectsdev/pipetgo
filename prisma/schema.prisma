@@ -62,7 +62,7 @@ model User {
   name          String?
   email         String    @unique
   // Bcrypt password hash (nullable for OAuth-only users)
-  passwordHash  String?
+  hashedPassword  String?
   emailVerified DateTime?
   image         String?
   role          UserRole  @default(CLIENT)

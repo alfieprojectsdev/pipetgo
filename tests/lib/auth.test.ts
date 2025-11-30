@@ -6,7 +6,7 @@
  * Test Coverage:
  * - Successful authentication with valid credentials
  * - Failed authentication (wrong password, non-existent user)
- * - Backward compatibility with OAuth users (null passwordHash)
+ * - Backward compatibility with OAuth users (null hashedPassword)
  * - Security (constant-time comparison, timing attack prevention)
  * - Edge cases (missing email, missing password, empty strings)
  */
@@ -57,7 +57,7 @@ describe('NextAuth Password Authentication', () => {
         email: 'test@example.com',
         name: 'Test User',
         role: 'CLIENT',
-        passwordHash: '$2a$12$hashedpassword'
+        hashedPassword: '$2a$12$hashedpassword'
       }
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
@@ -85,7 +85,7 @@ describe('NextAuth Password Authentication', () => {
           email: true,
           name: true,
           role: true,
-          passwordHash: true
+          hashedPassword: true
         }
       })
 
@@ -101,7 +101,7 @@ describe('NextAuth Password Authentication', () => {
         email: 'test@example.com',
         name: 'Test User',
         role: 'CLIENT',
-        passwordHash: '$2a$12$hashedpassword'
+        hashedPassword: '$2a$12$hashedpassword'
       }
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
@@ -128,7 +128,7 @@ describe('NextAuth Password Authentication', () => {
         email: 'lab@example.com',
         name: 'Lab Admin',
         role: 'LAB_ADMIN',
-        passwordHash: '$2a$12$hashedpassword'
+        hashedPassword: '$2a$12$hashedpassword'
       }
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockLabAdmin as any)
@@ -161,7 +161,7 @@ describe('NextAuth Password Authentication', () => {
         email: 'test@example.com',
         name: 'Test User',
         role: 'CLIENT',
-        passwordHash: '$2a$12$hashedpassword'
+        hashedPassword: '$2a$12$hashedpassword'
       }
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
@@ -269,13 +269,13 @@ describe('NextAuth Password Authentication', () => {
   // BACKWARD COMPATIBILITY TESTS (OAuth Users)
   // ============================================================================
   describe('Backward Compatibility (OAuth Users)', () => {
-    it('should return null for OAuth-only user (null passwordHash)', async () => {
+    it('should return null for OAuth-only user (null hashedPassword)', async () => {
       const mockOAuthUser = {
         id: 'user-oauth',
         email: 'oauth@example.com',
         name: 'OAuth User',
         role: 'CLIENT',
-        passwordHash: null // OAuth user, no password set
+        hashedPassword: null // OAuth user, no password set
       }
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockOAuthUser as any)
@@ -294,13 +294,13 @@ describe('NextAuth Password Authentication', () => {
       expect(verifyPassword).not.toHaveBeenCalled()
     })
 
-    it('should return null for user with undefined passwordHash', async () => {
+    it('should return null for user with undefined hashedPassword', async () => {
       const mockUser = {
         id: 'user-no-pass',
         email: 'nopass@example.com',
         name: 'No Password User',
         role: 'CLIENT',
-        passwordHash: undefined
+        hashedPassword: undefined
       }
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
@@ -346,7 +346,7 @@ describe('NextAuth Password Authentication', () => {
       const mockUser = {
         id: 'user-1',
         email: 'test@example.com',
-        passwordHash: '$2a$12$realHash'
+        hashedPassword: '$2a$12$realHash'
       }
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
@@ -408,7 +408,7 @@ describe('NextAuth Password Authentication', () => {
       const mockUser = {
         id: 'user-1',
         email: 'test@example.com',
-        passwordHash: '$2a$12$hash'
+        hashedPassword: '$2a$12$hash'
       }
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
@@ -459,7 +459,7 @@ describe('NextAuth Password Authentication', () => {
       const mockUser = {
         id: 'user-1',
         email: specialEmail,
-        passwordHash: '$2a$12$hash'
+        hashedPassword: '$2a$12$hash'
       }
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
@@ -481,7 +481,7 @@ describe('NextAuth Password Authentication', () => {
       const mockUser = {
         id: 'user-1',
         email: 'test@example.com',
-        passwordHash: '$2a$12$hash'
+        hashedPassword: '$2a$12$hash'
       }
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)

@@ -70,7 +70,7 @@ export async function hashPassword(password: string): Promise<string> {
  * Example:
  * ```typescript
  * const user = await prisma.user.findUnique({ where: { email } })
- * const isValid = await verifyPassword(inputPassword, user.passwordHash)
+ * const isValid = await verifyPassword(inputPassword, user.hashedPassword)
  * if (isValid) {
  *   // Password correct, proceed with login
  * }
