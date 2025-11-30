@@ -10,6 +10,34 @@ import { formatCurrency, cn } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * Fetches a URL with a configurable timeout using AbortController.
+ *
+ * @param url - The URL to fetch
+ * @param timeout - Timeout in milliseconds (default: 15000ms)
+ * @returns Promise<Response> or throws AbortError if timeout occurs
+ *
+ * Example:
+ *   const res = await fetchWithTimeout('/api/services', 15000)
+ *   // Throws AbortError if request takes longer than 15 seconds
+ */
+async function fetchWithTimeout(
+  url: string,
+  timeout: number = 15000
+): Promise<Response> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+  try {
+    const response = await fetch(url, { signal: controller.signal })
+    clearTimeout(timeoutId)
+    return response
+  } catch (error) {
+    clearTimeout(timeoutId)
+    throw error
+  }
+}
+
 interface LabLocation {
   city?: string
   province?: string
@@ -61,6 +89,7 @@ export default function Home() {
   const router = useRouter()
   const [services, setServices] = useState<LabService[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [pagination, setPagination] = useState<PaginationMeta>({
     page: 1,
     pageSize: 12,
@@ -75,14 +104,40 @@ export default function Home() {
 
   const fetchServices = async (page: number) => {
     setIsLoading(true)
+    setError(null)
+
     try {
-      const response = await fetch(`/api/services?page=${page}&pageSize=12`)
+      const response = await fetchWithTimeout(
+        `/api/services?page=${page}&pageSize=12`,
+        15000
+      )
+
       if (response.ok) {
         const data = await response.json()
         setServices(data.items)
         setPagination(data.pagination)
+      } else {
+        setError('Failed to load services. Please refresh the page.')
+        console.error(
+          'API returned non-OK status:',
+          response.status,
+          response.statusText
+        )
       }
     } catch (error) {
+      // Check for timeout/abort errors (AbortError)
+      const isAbortError =
+        error instanceof Error && error.name === 'AbortError'
+      const isDOMException =
+        error instanceof DOMException && error.name === 'AbortError'
+
+      if (isAbortError || isDOMException) {
+        setError(
+          'Service loading is taking longer than expected. Please try again.'
+        )
+      } else {
+        setError('Failed to load services. Please refresh the page.')
+      }
       console.error('Error fetching services:', error)
     } finally {
       setIsLoading(false)
@@ -91,6 +146,7 @@ export default function Home() {
 
   const handlePrevPage = () => {
     if (pagination.page > 1) {
+      setError(null)
       fetchServices(pagination.page - 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
@@ -98,6 +154,7 @@ export default function Home() {
 
   const handleNextPage = () => {
     if (pagination.hasMore) {
+      setError(null)
       fetchServices(pagination.page + 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
@@ -161,6 +218,29 @@ export default function Home() {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h3 className="text-3xl font-bold text-center mb-12">Available Lab Services</h3>
+
+          {error && (
+            <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <span className="text-red-600 text-xl mt-0.5">⚠️</span>
+                  <div>
+                    <p className="text-red-800 font-medium">Unable to Load Services</p>
+                    <p className="text-red-700 text-sm mt-1">{error}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setError(null)
+                    fetchServices(pagination.page)
+                  }}
+                  className="ml-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium whitespace-nowrap"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          )}
 
           {isLoading ? (
             <div className="text-center py-12">
