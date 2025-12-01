@@ -33,8 +33,10 @@ const handler = NextAuth(authOptions)
  */
 export async function POST(req: NextRequest) {
   // Only rate limit signin requests (not signout, csrf, session, etc.)
+  // Parse the URL to check if this is a credentials callback (login attempt)
   const url = new URL(req.url)
-  const isSigninCallback = url.searchParams.get('nextauth')?.includes('callback/credentials')
+  const pathname = url.pathname
+  const isSigninCallback = pathname.includes('/callback/credentials')
 
   if (isSigninCallback) {
     // Rate limit login attempts
@@ -47,7 +49,9 @@ export async function POST(req: NextRequest) {
   }
 
   // Proceed with NextAuth handler
-  return handler(req as any)
+  // NextAuth v4 automatically detects App Router by receiving a Web Request
+  // and returns a Web Response
+  return handler(req)
 }
 
 /**
