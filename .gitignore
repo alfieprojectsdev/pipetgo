@@ -40,9 +40,11 @@ storybook-static/
 
 # Claude Code logs
 claude_*.log
+snapshot_claude_*.txt
 
 # TypeScript build cache
 tsconfig.tsbuildinfo
 
 # misc
 docs/terminal_snapshot.txttmp/
+scripts/LAB_ACCOUNT_CREDENTIALS.md
