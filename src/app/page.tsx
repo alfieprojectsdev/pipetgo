@@ -169,18 +169,6 @@ export default function Home() {
     router.push(`/order/${serviceId}`)
   }
 
-  if (session) {
-    // Redirect authenticated users to their dashboard
-    const dashboardPath = session.user.role === 'ADMIN' 
-      ? '/dashboard/admin' 
-      : session.user.role === 'LAB_ADMIN' 
-      ? '/dashboard/lab' 
-      : '/dashboard/client'
-    
-    router.push(dashboardPath)
-    return null
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -188,9 +176,27 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">PipetGo!</h1>
-            <Button onClick={() => router.push('/api/auth/signin')}>
-              Sign In
-            </Button>
+            {session ? (
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => {
+                  const dashboardPath = session.user.role === 'ADMIN'
+                    ? '/dashboard/admin'
+                    : session.user.role === 'LAB_ADMIN'
+                    ? '/dashboard/lab'
+                    : '/dashboard/client'
+                  router.push(dashboardPath)
+                }}>
+                  My Dashboard
+                </Button>
+                <Button variant="outline" onClick={() => router.push('/api/auth/signout')}>
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={() => router.push('/api/auth/signin')}>
+                Sign In
+              </Button>
+            )}
           </div>
         </div>
       </header>

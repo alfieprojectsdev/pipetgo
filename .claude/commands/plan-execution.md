@@ -30,6 +30,8 @@ You have access to these specialized agents for delegation:
 - **@agent-quality-reviewer**: Reviews code for issues, security, and best practices
 - **@agent-ux-reviewer**: Reviews UI/UX, accessibility, and usability
 - **@agent-technical-writer**: Creates documentation, writes docstrings, explains code
+- **@agent-adr-writer**: Creates ADR documents according to standardized structure
+- **@agent-architecture-mentor**: Explains architectural decisions before/during/after implementation
 
 **PipetGo-Specific Agents:**
 - **@pipetgo-business-model-strategy**: Revenue models (subscription/commission/hybrid), platform leakage prevention, go-to-market strategy, financial projections. Delegates to @agent-architect for technical design.

@@ -31,5 +31,5 @@
     "**/*.tsx",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "docs", "tests", "**/*.test.ts", "**/*.test.tsx", "vitest.config.ts", "vitest.setup.ts", "prisma", "**/*-mock.ts", "**/*.mock.ts"]
+  "exclude": ["node_modules", "docs", "tests", "**/*.test.ts", "**/*.test.tsx", "vitest.config.ts", "vitest.setup.ts", "prisma", "**/*-mock.ts", "**/*.mock.ts", "scripts"]
 }

@@ -2,10 +2,22 @@ import { PrismaClient, UserRole, PricingMode } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
+/**
+ * NOTE: This seed file is for LOCAL DEVELOPMENT ONLY
+ *
+ * For PRODUCTION, use the production seed users with secure passwords:
+ * - lab1@pgtestinglab.com (password in LAB_ACCOUNT_CREDENTIALS.md)
+ * - lab2@pgtestlab.com
+ * - lab3@pgtstlab.com
+ * - lab4@testlabpg.com
+ *
+ * Production passwords are managed separately for security.
+ */
+
 async function main() {
   console.log('🌱 Seeding database...')
 
-  // Create admin user
+  // Create admin user (email-only auth for ADMIN role)
   const admin = await prisma.user.upsert({
     where: { email: 'admin@pipetgo.com' },
     update: {},
@@ -13,10 +25,12 @@ async function main() {
       email: 'admin@pipetgo.com',
       name: 'PipetGo Admin',
       role: UserRole.ADMIN,
+      // No hashedPassword - ADMIN uses email-only auth
     },
   })
 
-  // Create lab admin user
+  // Create lab admin user for DEVELOPMENT (with test password)
+  // Password: "TestPassword123!" (DO NOT use in production)
   const labAdmin = await prisma.user.upsert({
     where: { email: 'lab@testinglab.com' },
     update: {},
@@ -24,10 +38,12 @@ async function main() {
       email: 'lab@testinglab.com',
       name: 'Metro Testing Lab Admin',
       role: UserRole.LAB_ADMIN,
+      // Development-only password: TestPassword123!
+      hashedPassword: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYKKhkP.Eim',
     },
   })
 
-  // Create client user
+  // Create client user (email-only auth for CLIENT role)
   const client = await prisma.user.upsert({
     where: { email: 'client@example.com' },
     update: {},
@@ -35,6 +51,7 @@ async function main() {
       email: 'client@example.com',
       name: 'Maria Santos',
       role: UserRole.CLIENT,
+      // No hashedPassword - CLIENT uses email-only auth
     },
   })
 
