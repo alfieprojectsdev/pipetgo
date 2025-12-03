@@ -202,28 +202,60 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="bg-green-600 text-white py-10 sm:py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4">
-            Find the Right Lab for Your Testing Needs
-          </h2>
-          <p className="text-base sm:text-lg lg:text-xl mb-6 sm:mb-8">
-            Connect with accredited laboratories for food safety, environmental, and chemical analysis
-          </p>
-          <Button
-            size="lg"
-            className="bg-white text-green-600 hover:bg-gray-100 min-h-[44px] w-full sm:w-auto"
-            onClick={() => router.push('/api/auth/signin')}
-          >
-            Get Started
-          </Button>
+      <section className={session ? "bg-green-600 text-white py-6 sm:py-8" : "bg-green-600 text-white py-10 sm:py-16"}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {session ? (
+            // Authenticated: Simpler, task-focused header
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+                Browse Lab Services
+              </h2>
+              <p className="text-green-100 text-sm sm:text-base">
+                {session.user.role === 'CLIENT'
+                  ? 'Request quotes from ISO 17025 certified laboratories'
+                  : 'Explore available testing services'}
+              </p>
+            </div>
+          ) : (
+            // Unauthenticated: Marketing-focused hero
+            <div className="text-center">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4">
+                Find the Right Lab for Your Testing Needs
+              </h2>
+              <p className="text-base sm:text-lg lg:text-xl mb-6 sm:mb-8">
+                Connect with accredited laboratories for food safety, environmental, and chemical analysis
+              </p>
+              <Button
+                size="lg"
+                className="bg-white text-green-600 hover:bg-gray-100 min-h-[44px] w-full sm:w-auto"
+                onClick={() => router.push('/api/auth/signin')}
+              >
+                Get Started
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 
       {/* Services Section */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h3 className="text-3xl font-bold text-center mb-12">Available Lab Services</h3>
+          {session ? (
+            // Authenticated: Show service count and context
+            <div className="mb-8">
+              <h3 className="text-3xl font-bold mb-2">
+                {pagination.totalCount > 0 ? `${pagination.totalCount} Services Available` : 'Lab Services'}
+              </h3>
+              <p className="text-gray-600">
+                {session.user.role === 'CLIENT'
+                  ? 'Click "Request Quote" to start an RFQ with any lab below'
+                  : 'Browse our catalog of laboratory testing services'}
+              </p>
+            </div>
+          ) : (
+            // Unauthenticated: Simple centered title
+            <h3 className="text-3xl font-bold text-center mb-12">Available Lab Services</h3>
+          )}
 
           {error && (
             <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -327,11 +359,21 @@ export default function Home() {
                         )}
                         onClick={() => handleOrderService(service.id)}
                       >
-                        {service.pricingMode === 'QUOTE_REQUIRED'
-                          ? 'Request Quote'
-                          : service.pricingMode === 'HYBRID'
-                          ? 'View Options'
-                          : 'Book Service'}
+                        {session && session.user.role === 'CLIENT' ? (
+                          // Authenticated CLIENT: Action-oriented
+                          service.pricingMode === 'QUOTE_REQUIRED'
+                            ? 'Request Quote →'
+                            : service.pricingMode === 'HYBRID'
+                            ? 'Get Quote →'
+                            : 'Request Service →'
+                        ) : (
+                          // Unauthenticated or non-CLIENT: Standard
+                          service.pricingMode === 'QUOTE_REQUIRED'
+                            ? 'Request Quote'
+                            : service.pricingMode === 'HYBRID'
+                            ? 'View Options'
+                            : 'Book Service'
+                        )}
                       </Button>
                     </CardContent>
                   </Card>
