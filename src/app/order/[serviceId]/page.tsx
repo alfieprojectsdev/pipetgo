@@ -80,8 +80,8 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
     try {
       const response = await fetch(`/api/services?serviceId=${params.serviceId}`)
       if (response.ok) {
-        const services = await response.json()
-        const foundService = services.find((s: LabService) => s.id === params.serviceId)
+        const data = await response.json()
+        const foundService = data.items?.find((s: LabService) => s.id === params.serviceId)
         if (foundService) {
           setService(foundService)
           setFormData(prev => ({ ...prev, contactEmail: session?.user?.email || '' }))
