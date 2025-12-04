@@ -370,40 +370,40 @@ async function main() {
   // Create additional realistic labs from TestingConsolidated.JSON
   const additionalLabs = [
     {
-      email: 'lab2@chempro.com',
-      name: 'Chempro Analytical',
-      labName: 'Chempro Analytical Services Laboratories, Inc.',
+      email: 'lab2@pgtestlab.com',
+      name: 'Testing Lab 2 Admin',
+      labName: 'Testing Lab 2',
       description: 'Full-service analytical laboratory specializing in water quality testing and environmental analysis',
       location: {
-        address: '2F-3F P1 Bldg. No. 131-135 Shaw Blvd., Brgy. Oranbo',
+        address: '200 Testing Street, Brgy. Sample',
         city: 'Pasig City',
-        coordinates: { lat: 14.5764, lng: 121.0851 }
+        coordinates: { lat: 14.5995, lng: 120.9842 }
       },
       certifications: ['ISO 17025:2017', 'DOH Licensed', 'DENR Accredited']
     },
     {
-      email: 'lab3@eurofins.com',
-      name: 'Eurofins Philippines',
-      labName: 'Eurofins Analytical and Assurance Services Philippines, Inc.',
+      email: 'lab3@pgtstlab.com',
+      name: 'Testing Lab 3 Admin',
+      labName: 'Testing Lab 3',
       description: 'International laboratory network providing comprehensive food safety and environmental testing services',
       location: {
-        address: '8th Floor Azure Business Center, 1197 EDSA Brgy. Katipunan',
+        address: '300 Laboratory Avenue, Brgy. Demo',
         city: 'Quezon City',
-        coordinates: { lat: 14.6760, lng: 121.0437 }
+        coordinates: { lat: 14.6042, lng: 120.9822 }
       },
-      certifications: ['ISO 17025:2017', 'FDA Registered', 'BPI Accredited', 'Eurofins Global Network']
+      certifications: ['ISO 17025:2017', 'FDA Registered', 'BPI Accredited']
     },
     {
-      email: 'lab4@intertek.com',
-      name: 'Intertek Makati',
-      labName: 'Analytical Assessment Division - Makati Laboratory Intertek Testing Services Philippines, Inc.',
+      email: 'lab4@testlabpg.com',
+      name: 'Testing Lab 4 Admin',
+      labName: 'Testing Lab 4',
       description: 'Global quality and safety solutions provider specializing in fuels, lubricants, and petrochemical testing',
       location: {
-        address: '2307 Chino Roces Avenue Extension',
+        address: '400 Analysis Road, Brgy. Test',
         city: 'Makati City',
-        coordinates: { lat: 14.5547, lng: 121.0244 }
+        coordinates: { lat: 14.5888, lng: 120.9903 }
       },
-      certifications: ['ISO 17025:2017', 'DOE Accredited', 'Intertek Global Network']
+      certifications: ['ISO 17025:2017', 'DOE Accredited']
     }
   ]
 
