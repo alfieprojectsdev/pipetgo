@@ -229,6 +229,9 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                 <div>
                   <label htmlFor="sampleDescription" className="block text-sm font-medium mb-1">
                     Sample Description *
+                    <span className="text-sm text-gray-500 ml-2 font-normal">
+                      ({formData.sampleDescription.length}/10 characters)
+                    </span>
                   </label>
                   <textarea
                     id="sampleDescription"
@@ -237,8 +240,14 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                     rows={3}
                     placeholder="Describe your sample (e.g., Coconut oil from batch #123, suspected contamination)"
+                    minLength={10}
                     required
                   />
+                  {formData.sampleDescription.length > 0 && formData.sampleDescription.length < 10 && (
+                    <p className="text-sm text-red-600 mt-1">
+                      Sample description must be at least 10 characters
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -412,7 +421,7 @@ export default function OrderPage({ params }: { params: { serviceId: string } })
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || formData.sampleDescription.length < 10}
                   >
                     {isSubmitting ? 'Submitting...' :
                       service.pricingMode === 'QUOTE_REQUIRED' ? 'Submit RFQ' :
