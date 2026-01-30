@@ -1,5 +1,4 @@
 # PipetGo User Testing Guide
-## For CEO's Friends - November 2025
 
 **Testing URL**: https://www.pipetgo.com/
 *(Production deployment)*
@@ -18,15 +17,16 @@ PipetGo is a B2B marketplace connecting businesses with ISO 17025 accredited lab
 
 ### Client Account (Request Quotes)
 - **Email**: `client@example.com`
-- **Password**: *(any password works in testing mode)*
+- **Password**: `ClientDemo123!`
 
 ### Lab Admin Account (Provide Quotes)
-- **Email**: `lab@example.com`
-- **Password**: *(any password works in testing mode)*
+- **Email**: `lab1@pgtestinglab.com`
+- **Password**: `HSmgGnbBcZ!zRsGQsnDkNHnu`
+- **Alternative Lab**: `lab2@pgtestlab.com` / `TBVQxpjJDr!GQpJqwxCHDDMf`
 
 ### Platform Admin Account (Overview)
-- **Email**: `admin@example.com`
-- **Password**: *(any password works in testing mode)*
+- **Email**: `admin@pipetgo.com`
+- **Password**: `AdminDemo123!`
 
 ---
 
@@ -261,11 +261,11 @@ PipetGo is a B2B marketplace connecting businesses with ISO 17025 accredited lab
 
 ## 📧 How to Submit Feedback
 
-**Option 1**: Email feedback to [your-email]
+**Option 1**: Email feedback to [alfieprojects.dev@gmail.com]
 
-**Option 2**: Add comments to shared Google Doc: [doc-link]
+**Option 2**: Add comments to shared Google Doc: [https://docs.google.com/document/d/1RDCxcQpryuMkgshCGHmsaZPHH1Lu4aBidHKZ-CjUD7M/edit?usp=sharing]
 
-**Option 3**: WhatsApp/Telegram: [your-contact]
+**Option 3**: Messenger: [https://www.messenger.com/e2ee/t/alfie.pelicano.90]
 
 ---
 
@@ -293,9 +293,7 @@ A: Go to Lab Dashboard → Services. Click "Add Service" to create your lab's se
 
 ## 🙏 Thank You!
 
-Your feedback helps make PipetGo better for Philippine businesses and laboratories. Every bug you find and every suggestion you make improves the platform.
-
-**Questions?** Contact [CEO name] directly.
+**Questions?** Contact Elen directly.
 
 ---
 
