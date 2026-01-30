@@ -262,4 +262,8 @@ This MVP demonstrates core marketplace functionality for portfolio/demo purposes
 
 ## License
 
-MIT License - see LICENSE file for details.
+All source code and assets in this repository are the exclusive, proprietary intellectual property of **PIPETGO, Inc.**.
+
+**All Rights Reserved.**
+
+This repository is made public for demonstration, portfolio review, and limited access by authorized team members, advisors, and investors only. Cloning, modification, distribution, or commercial use of this codebase by unauthorized third parties is strictly prohibited. The code is provided "as is" and is **NOT** licensed for open-source use.

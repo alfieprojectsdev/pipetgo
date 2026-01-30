@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Last Updated:** 2025-12-01
+**Last Updated:** 2025-12-12
 **Project:** PipetGo - B2B Lab Testing Marketplace
 **Status:** Quotation system implemented, 233 tests passing
 
@@ -223,6 +223,93 @@ Tests can run against either:
 2. Implement minimal code to pass
 3. Refactor while keeping tests green
 4. Never commit without all tests passing
+
+---
+
+## Using Gemini CLI for Large Codebase Analysis
+
+When analyzing large codebases or multiple files that might exceed context limits, use the Gemini CLI with its massive context window. Use `gemini -p` to leverage Google Gemini's large context capacity.
+
+### File and Directory Inclusion Syntax
+
+Use the `@` syntax to include files and directories in your Gemini prompts. The paths should be relative to WHERE you run the gemini command:
+
+**Examples:**
+
+```bash
+# Single file analysis
+gemini -p "@src/app/api/orders/route.ts Explain this API route's authentication and authorization patterns"
+
+# Multiple files
+gemini -p "@prisma/schema.prisma @src/lib/db.ts Analyze the database models and connection handling"
+
+# Entire directory
+gemini -p "@src/app/api/ Summarize all API endpoints and their security measures"
+
+# Multiple directories
+gemini -p "@src/app/api/ @src/lib/validations/ Analyze input validation coverage for all API routes"
+
+# Current directory and subdirectories
+gemini -p "@./ Give me an overview of this entire project structure and architecture"
+
+# Or use --all_files flag
+gemini --all_files -p "Analyze the project structure and identify potential security vulnerabilities"
+```
+
+### Implementation Verification Examples
+
+```bash
+# Check if a feature is implemented
+gemini -p "@src/ @lib/ Has real-time order status updates been implemented? Show me the relevant files and functions"
+
+# Verify authentication implementation
+gemini -p "@src/app/api/ @lib/auth.ts Is role-based authorization (CLIENT, LAB_ADMIN, ADMIN) properly enforced on all API endpoints?"
+
+# Check for specific patterns
+gemini -p "@src/app/api/ Are all API routes using Zod validation? List any routes missing input validation"
+
+# Verify error handling
+gemini -p "@src/app/api/ Is proper error handling implemented for all API endpoints? Show examples of Prisma error handling"
+
+# Check for rate limiting
+gemini -p "@src/app/api/ @middleware/ Is rate limiting implemented for the API? Show the implementation details"
+
+# Verify security measures
+gemini -p "@src/app/api/ Are SQL injection protections implemented? Show how Prisma prevents injection attacks"
+
+# Verify test coverage for features
+gemini -p "@src/app/api/orders/ @tests/ Is the order/quote workflow fully tested? List all test cases for quote provision flow"
+
+# Check RFQ-specific patterns
+gemini -p "@src/app/api/orders/ @src/lib/validations/ Verify that quotedPrice is NEVER auto-populated from service.pricePerUnit (this is RFQ, not e-commerce)"
+
+# Verify pricing mode implementation
+gemini -p "@src/ @prisma/schema.prisma Are all three pricing modes (QUOTE_REQUIRED, FIXED, HYBRID) properly implemented across the UI and API?"
+
+# Check database transaction usage
+gemini -p "@src/app/api/ List all multi-step operations. Are they using Prisma transactions correctly?"
+```
+
+### When to Use Gemini CLI
+
+Use `gemini -p` when:
+- Analyzing entire codebases or large directories
+- Comparing multiple large files
+- Need to understand project-wide patterns or architecture
+- Current context window is insufficient for the task
+- Working with files totaling more than 100KB
+- Verifying if specific features, patterns, or security measures are implemented across the entire codebase
+- Checking for RFQ-specific business logic violations (e.g., e-commerce patterns leaking into B2B flows)
+- Cross-referencing implementation against CLAUDE.md requirements
+
+### Important Notes
+
+- Paths in `@` syntax are relative to your current working directory when invoking gemini
+- The CLI will include file contents directly in the context
+- No need for `--yolo` flag for read-only analysis
+- Gemini's context window can handle entire codebases that would overflow Claude's context
+- When checking implementations, be specific about what you're looking for to get accurate results
+- Particularly useful for verifying PipetGo's B2B RFQ patterns vs e-commerce anti-patterns
 
 ---
 

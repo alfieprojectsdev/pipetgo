@@ -1,0 +1,7 @@
+Account Type,Name,Email,Password,Role,Status,Permissions
+Lab Administrator,Testing Lab 1,lab1@pgtestinglab.com,"HSmgGnbBcZ!zRsGQsnDkNHnu",LAB_ADMIN,Active,"Provide quotes; manage lab orders; upload results"
+Lab Administrator,Testing Lab 2,lab2@pgtestlab.com,"f3iCMaNunBqNB6AzBf7bnFyR",LAB_ADMIN,Active,"Provide quotes; manage lab orders; upload results"
+Lab Administrator,Testing Lab 3,lab3@pgtstlab.com,"W4!cTAV@Gs2vNLE9@VEHCUDz",LAB_ADMIN,Active,"Provide quotes; manage lab orders; upload results"
+Lab Administrator,Testing Lab 4,lab4@testlabpg.com,"rY!hXsCWvUHbf8e65QwveYPG",LAB_ADMIN,Active,"Provide quotes; manage lab orders; upload results"
+Client,Demo Client,client@example.com,"ClientDemo123!",CLIENT,Active,"Submit RFQs; approve quotes; view own orders"
+Platform Admin,Primary Admin,admin@pipetgo.com,"AdminDemo123!",ADMIN,Active,"Platform oversight*; view all activity; user management*"

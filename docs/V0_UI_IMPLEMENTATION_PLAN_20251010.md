@@ -609,7 +609,7 @@ import { Search, Clock, MapPin, CheckCircle2, ArrowRight, Star, Beaker, FlaskCon
 {/* Footer - Simplified */}
 <footer className="bg-gray-900 text-white py-8">
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-    <p>&copy; 2024 PipetGo. Materials Testing Marketplace.</p>
+    <p>&copy; 2025 PipetGo! Materials Testing Marketplace.</p>
   </div>
 </footer>
 ```

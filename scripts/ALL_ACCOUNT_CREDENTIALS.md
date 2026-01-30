@@ -447,6 +447,7 @@ ORDER BY "createdAt" DESC;
 
 ## Document Version History
 
+- **2025-12-04:** Verified credentials work with fully anonymized database (no changes needed)
 - **2025-12-01:** Complete rewrite with all roles and comprehensive documentation
 - **2025-11-29:** Initial version (lab admins only)
 

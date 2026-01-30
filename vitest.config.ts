@@ -1,4 +1,12 @@
 /**
+ * PipetGo - B2B Lab Testing Marketplace
+ * Copyright (c) 2025 PIPETGO, Inc. All rights reserved.
+ * 
+ * This file and its contents are the proprietary intellectual property of PIPETGO, Inc.
+ * Unauthorized use, reproduction, or distribution is strictly prohibited.
+ */
+
+/**
  * 🎓 LEARNING: Vitest Configuration
  * =================================
  * Vitest is a fast unit test framework compatible with Jest API.

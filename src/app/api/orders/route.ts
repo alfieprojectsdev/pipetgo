@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
 
     const whereClause: {
       clientId?: string
-      labId?: string
+      lab?: { ownerId: string }
       status?: OrderStatus
     } = {}
 
@@ -145,12 +145,9 @@ export async function GET(request: NextRequest) {
     if (session.user.role === 'CLIENT') {
       whereClause.clientId = session.user.id
     } else if (session.user.role === 'LAB_ADMIN') {
-      // Get lab owned by this user
-      const lab = await prisma.lab.findFirst({
-        where: { ownerId: session.user.id }
-      })
-      if (lab) {
-        whereClause.labId = lab.id
+      // Single query with nested where - Prisma generates optimized JOIN
+      whereClause.lab = {
+        ownerId: session.user.id
       }
     }
     // ADMIN can see all orders (no additional filter)
