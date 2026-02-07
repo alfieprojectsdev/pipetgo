@@ -29,27 +29,6 @@ export const dynamic = 'force-dynamic'
 // ============================================================================
 
 /**
- * Order with service relationship for analytics
- */
-interface OrderWithService {
-  status: OrderStatus
-  quotedPrice: Decimal | null
-  createdAt: Date
-  service: {
-    id: string
-    name: string
-  }
-}
-
-/**
- * Basic order type for calculations
- */
-interface BasicOrder {
-  quotedPrice: Decimal | null
-  status: OrderStatus
-}
-
-/**
  * Monthly data structure
  */
 interface MonthlyDataEntry {
@@ -125,26 +104,22 @@ export async function GET(req: Request) {
     }
 
     // ========================================================================
-    // 5. FETCH ORDERS (CRITICAL: Ownership check via labId)
+    // 5. REVENUE METRICS (Optimized with Aggregation)
     // ========================================================================
-    const orders = await prisma.order.findMany({
+    const revenueAgg = await prisma.order.aggregate({
       where: {
-        labId: lab.id, // CRITICAL: Only this lab's orders
-        createdAt: { gte: startDate }
+        labId: lab.id,
+        createdAt: { gte: startDate },
+        status: OrderStatus.COMPLETED
       },
-      include: {
-        service: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
-      }
+      _sum: { quotedPrice: true }
     })
 
-    // Fetch previous period orders for growth calculation
-    const previousPeriodOrders = timeframe !== 'allTime'
-      ? await prisma.order.findMany({
+    const totalRevenue = revenueAgg._sum.quotedPrice ? Number(revenueAgg._sum.quotedPrice) : 0
+
+    // Fetch previous period revenue for growth calculation
+    const previousRevenueAgg = timeframe !== 'allTime'
+      ? await prisma.order.aggregate({
           where: {
             labId: lab.id,
             createdAt: {
@@ -152,101 +127,149 @@ export async function GET(req: Request) {
               lt: previousPeriodEnd
             },
             status: OrderStatus.COMPLETED
-          }
+          },
+          _sum: { quotedPrice: true }
         })
-      : []
+      : { _sum: { quotedPrice: 0 } }
 
-    // ========================================================================
-    // 6. CALCULATE REVENUE METRICS
-    // ========================================================================
-    const completedOrders = orders.filter((o: OrderWithService): o is OrderWithService =>
-      o.status === OrderStatus.COMPLETED
-    )
-    const totalRevenue = completedOrders.reduce((sum: number, o: OrderWithService): number => {
-      return sum + (o.quotedPrice ? Number(o.quotedPrice) : 0)
-    }, 0)
-
-    // Monthly revenue breakdown (last 12 months)
-    const monthlyRevenue = calculateMonthlyBreakdown(completedOrders, 12)
-
-    // Growth calculation (compare to previous period)
-    const previousRevenue = previousPeriodOrders.reduce((sum: number, o: BasicOrder): number => {
-      return sum + (o.quotedPrice ? Number(o.quotedPrice) : 0)
-    }, 0)
+    const previousRevenue = previousRevenueAgg._sum.quotedPrice ? Number(previousRevenueAgg._sum.quotedPrice) : 0
 
     const revenueGrowth = previousRevenue > 0
       ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
       : totalRevenue > 0 ? 100 : 0
 
     // ========================================================================
-    // 7. CALCULATE QUOTE STATISTICS
+    // 6. QUOTE STATISTICS (Optimized with Aggregation)
     // ========================================================================
-    // Orders with quotes are those that have quotedPrice set
-    const ordersWithQuotes = orders.filter(o => o.quotedPrice !== null)
+    const quotesAgg = await prisma.order.aggregate({
+      where: {
+        labId: lab.id,
+        createdAt: { gte: startDate },
+        quotedPrice: { not: null }
+      },
+      _count: { _all: true }
+    })
+    const totalQuotes = quotesAgg._count._all
 
-    // Accepted quotes are those that moved beyond QUOTE_PROVIDED status
-    const acceptedQuotes = ordersWithQuotes.filter(o =>
-      o.status === OrderStatus.PENDING ||
-      o.status === OrderStatus.ACKNOWLEDGED ||
-      o.status === OrderStatus.IN_PROGRESS ||
-      o.status === OrderStatus.COMPLETED
-    )
+    // Accepted quotes
+    const acceptedQuotesAgg = await prisma.order.aggregate({
+      where: {
+        labId: lab.id,
+        createdAt: { gte: startDate },
+        quotedPrice: { not: null },
+        status: {
+          in: [
+            OrderStatus.PENDING,
+            OrderStatus.ACKNOWLEDGED,
+            OrderStatus.IN_PROGRESS,
+            OrderStatus.COMPLETED
+          ]
+        }
+      },
+      _count: { _all: true },
+      _avg: { quotedPrice: true }
+    })
+    const acceptedQuotesCount = acceptedQuotesAgg._count._all
+    const avgQuotePrice = acceptedQuotesAgg._avg.quotedPrice ? Number(acceptedQuotesAgg._avg.quotedPrice) : 0
 
-    // Pending quotes are those in QUOTE_PROVIDED status (awaiting client approval)
-    const pendingQuotes = orders.filter(o => o.status === OrderStatus.QUOTE_PROVIDED)
-
-    // Average quote price (only accepted quotes)
-    const avgQuotePrice = acceptedQuotes.length > 0
-      ? acceptedQuotes.reduce((sum: number, o: OrderWithService): number =>
-          sum + Number(o.quotedPrice!),
-        0) / acceptedQuotes.length
+    const acceptanceRate = totalQuotes > 0
+      ? (acceptedQuotesCount / totalQuotes) * 100
       : 0
 
-    const acceptanceRate = ordersWithQuotes.length > 0
-      ? (acceptedQuotes.length / ordersWithQuotes.length) * 100
-      : 0
-
-    // ========================================================================
-    // 8. CALCULATE ORDER VOLUME
-    // ========================================================================
-    const inProgressOrders = orders.filter(o => o.status === OrderStatus.IN_PROGRESS)
-    const monthlyVolume = calculateMonthlyVolume(orders, 12)
-
-    // ========================================================================
-    // 9. CALCULATE TOP SERVICES (by revenue)
-    // ========================================================================
-    const serviceRevenue = new Map<string, { name: string; revenue: number; count: number }>()
-
-    completedOrders.forEach((order: OrderWithService): void => {
-      const serviceId = order.service.id
-      const serviceName = order.service.name
-      const revenue = order.quotedPrice ? Number(order.quotedPrice) : 0
-
-      if (serviceRevenue.has(serviceId)) {
-        const current = serviceRevenue.get(serviceId)!
-        serviceRevenue.set(serviceId, {
-          name: serviceName,
-          revenue: current.revenue + revenue,
-          count: current.count + 1
-        })
-      } else {
-        serviceRevenue.set(serviceId, {
-          name: serviceName,
-          revenue,
-          count: 1
-        })
+    // Pending quotes (QUOTE_PROVIDED)
+    const pendingQuotesCount = await prisma.order.count({
+      where: {
+        labId: lab.id,
+        createdAt: { gte: startDate },
+        status: OrderStatus.QUOTE_PROVIDED
       }
     })
 
-    const topServices = Array.from(serviceRevenue.entries())
-      .map(([serviceId, data]) => ({
-        serviceId,
-        serviceName: data.name,
-        revenue: data.revenue,
-        orderCount: data.count
-      }))
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 10) // Top 10 services
+    // ========================================================================
+    // 7. ORDER VOLUME (Optimized with Aggregation)
+    // ========================================================================
+    const orderCounts = await prisma.order.groupBy({
+      by: ['status'],
+      where: {
+        labId: lab.id,
+        createdAt: { gte: startDate }
+      },
+      _count: { _all: true }
+    })
+
+    // Process counts map
+    let totalOrders = 0
+    let completedOrdersCount = 0
+    let inProgressOrdersCount = 0
+
+    orderCounts.forEach(group => {
+      totalOrders += group._count._all
+      if (group.status === OrderStatus.COMPLETED) completedOrdersCount = group._count._all
+      if (group.status === OrderStatus.IN_PROGRESS) inProgressOrdersCount = group._count._all
+    })
+
+    // ========================================================================
+    // 8. MONTHLY BREAKDOWN (Optimized Fetch - Minimal Fields)
+    // ========================================================================
+    // We still need to fetch some data for monthly breakdown as grouping by
+    // month in SQL via Prisma is complex and DB-dependent.
+    // However, we select ONLY necessary fields.
+    const ordersForMonthly = await prisma.order.findMany({
+      where: {
+        labId: lab.id,
+        createdAt: { gte: startDate }
+      },
+      select: {
+        createdAt: true,
+        quotedPrice: true,
+        status: true
+      }
+    })
+
+    const monthlyRevenue = calculateMonthlyBreakdown(
+      ordersForMonthly.filter(o => o.status === OrderStatus.COMPLETED),
+      12
+    )
+    const monthlyVolume = calculateMonthlyVolume(ordersForMonthly, 12)
+
+    // ========================================================================
+    // 9. TOP SERVICES (Optimized with GroupBy)
+    // ========================================================================
+    const topServicesGrouped = await prisma.order.groupBy({
+      by: ['serviceId'],
+      where: {
+        labId: lab.id,
+        createdAt: { gte: startDate },
+        status: OrderStatus.COMPLETED
+      },
+      _sum: { quotedPrice: true },
+      _count: { id: true },
+      orderBy: {
+        _sum: { quotedPrice: 'desc' }
+      },
+      take: 10
+    })
+
+    // Fetch service names for the top services
+    const serviceIds = topServicesGrouped.map(g => g.serviceId)
+    const services = await prisma.labService.findMany({
+      where: {
+        id: { in: serviceIds }
+      },
+      select: {
+        id: true,
+        name: true
+      }
+    })
+
+    const serviceMap = new Map(services.map(s => [s.id, s.name]))
+
+    const topServices = topServicesGrouped.map(group => ({
+      serviceId: group.serviceId,
+      serviceName: serviceMap.get(group.serviceId) || 'Unknown Service',
+      revenue: group._sum.quotedPrice ? Number(group._sum.quotedPrice) : 0,
+      orderCount: group._count.id
+    }))
 
     // ========================================================================
     // 10. RETURN ANALYTICS DATA
@@ -258,16 +281,16 @@ export async function GET(req: Request) {
         growth: revenueGrowth
       },
       quotes: {
-        totalQuotes: ordersWithQuotes.length,
-        acceptedQuotes: acceptedQuotes.length,
+        totalQuotes: totalQuotes,
+        acceptedQuotes: acceptedQuotesCount,
         acceptanceRate,
         avgQuotePrice,
-        pendingQuotes: pendingQuotes.length
+        pendingQuotes: pendingQuotesCount
       },
       orders: {
-        totalOrders: orders.length,
-        completedOrders: completedOrders.length,
-        inProgressOrders: inProgressOrders.length,
+        totalOrders: totalOrders,
+        completedOrders: completedOrdersCount,
+        inProgressOrders: inProgressOrdersCount,
         monthlyVolume
       },
       topServices
@@ -291,6 +314,7 @@ export async function GET(req: Request) {
 interface AnalyticsOrder {
   createdAt: Date
   quotedPrice: Decimal | null
+  status?: OrderStatus // Add status here if needed, or keep it loosely typed
 }
 
 /**
