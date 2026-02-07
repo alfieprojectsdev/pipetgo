@@ -42,6 +42,7 @@ export default function ClientDashboard() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
+  const [stats, setStats] = useState<{ total: number; byStatus: Record<string, number> }>({ total: 0, byStatus: {} })
   const [isLoading, setIsLoading] = useState(true)
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false)
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false)
@@ -56,6 +57,7 @@ export default function ClientDashboard() {
       return
     }
     fetchOrders()
+    fetchStats()
   }, [session, status, router])
 
   const fetchOrders = async () => {
@@ -69,6 +71,18 @@ export default function ClientDashboard() {
       console.error('Error fetching orders:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/orders/stats')
+      if (response.ok) {
+        const data = await response.json()
+        setStats(data)
+      }
+    } catch (error) {
+      console.error('Error fetching order stats:', error)
     }
   }
 
@@ -91,6 +105,7 @@ export default function ClientDashboard() {
         toast.success('Quote approved', 'Order is now pending')
         setApprovalDialogOpen(false)
         fetchOrders()
+        fetchStats()
       } else {
         const data = await response.json()
         toast.error('Failed to approve quote', data.error)
@@ -127,6 +142,7 @@ export default function ClientDashboard() {
         toast.success('Quote rejected', 'Lab has been notified')
         setRejectionDialogOpen(false)
         fetchOrders()
+        fetchStats()
       } else {
         const data = await response.json()
         toast.error('Failed to reject quote', data.error)
@@ -293,7 +309,7 @@ export default function ClientDashboard() {
           <Card>
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-green-600">
-                {orders.length}
+                {stats.total}
               </div>
               <p className="text-sm text-gray-600">Total Requests</p>
             </CardContent>
@@ -301,7 +317,7 @@ export default function ClientDashboard() {
           <Card>
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-yellow-600">
-                {orders.filter(o => o.status === 'PENDING').length}
+                {stats.byStatus['PENDING'] || 0}
               </div>
               <p className="text-sm text-gray-600">Pending</p>
             </CardContent>
@@ -309,7 +325,7 @@ export default function ClientDashboard() {
           <Card>
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-purple-600">
-                {orders.filter(o => o.status === 'IN_PROGRESS').length}
+                {stats.byStatus['IN_PROGRESS'] || 0}
               </div>
               <p className="text-sm text-gray-600">In Progress</p>
             </CardContent>
@@ -317,7 +333,7 @@ export default function ClientDashboard() {
           <Card>
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-green-600">
-                {orders.filter(o => o.status === 'COMPLETED').length}
+                {stats.byStatus['COMPLETED'] || 0}
               </div>
               <p className="text-sm text-gray-600">Completed</p>
             </CardContent>
