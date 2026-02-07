@@ -27,6 +27,47 @@ const mockData = {
 
 let mockPrisma: PrismaClient | null = null
 
+// Helper to filter data based on where clause
+function filterData(data: any[], where: any) {
+  if (!where) return data
+
+  return data.filter(item => {
+    for (const key in where) {
+      const condition = where[key]
+      const value = item[key]
+
+      if (key === 'AND' && Array.isArray(condition)) {
+        if (!condition.every(c => filterData([item], c).length > 0)) return false
+        continue
+      }
+
+      // Handle Date comparisons
+      if (typeof condition === 'object' && condition !== null && !(condition instanceof Date) && !Array.isArray(condition)) {
+        if ('gte' in condition) {
+          if (new Date(value) < new Date(condition.gte)) return false
+        }
+        if ('gt' in condition) {
+          if (new Date(value) <= new Date(condition.gt)) return false
+        }
+        if ('lte' in condition) {
+          if (new Date(value) > new Date(condition.lte)) return false
+        }
+        if ('lt' in condition) {
+          if (new Date(value) >= new Date(condition.lt)) return false
+        }
+        if ('in' in condition && Array.isArray(condition.in)) {
+           if (!condition.in.includes(value)) return false
+        }
+        continue
+      }
+
+      // Simple equality
+      if (value !== condition) return false
+    }
+    return true
+  })
+}
+
 /**
  * Creates a mock Prisma client with in-memory data storage.
  * This provides Prisma-compatible interface for testing without database.
@@ -46,7 +87,7 @@ export async function createPrismaMock(): Promise<PrismaClient> {
         users.forEach((user: any) => mockData.users.set(user.id, user))
         return { count: users.length }
       },
-      findMany: async () => Array.from(mockData.users.values()),
+      findMany: async ({ where }: any = {}) => filterData(Array.from(mockData.users.values()), where),
       findUnique: async ({ where }: any) => {
         if (where.id) return mockData.users.get(where.id) || null
         if (where.email) {
@@ -56,12 +97,8 @@ export async function createPrismaMock(): Promise<PrismaClient> {
         return null
       },
       findFirst: async ({ where }: any) => {
-        const values = Array.from(mockData.users.values())
-        return values.find((u: any) => {
-          if (where.email) return u.email === where.email
-          if (where.id) return u.id === where.id
-          return false
-        }) || null
+        const results = filterData(Array.from(mockData.users.values()), where)
+        return results[0] || null
       },
       deleteMany: async () => {
         const count = mockData.users.size
@@ -74,8 +111,12 @@ export async function createPrismaMock(): Promise<PrismaClient> {
         mockData.labs.set(data.id, data)
         return data
       },
-      findMany: async () => Array.from(mockData.labs.values()),
+      findMany: async ({ where }: any = {}) => filterData(Array.from(mockData.labs.values()), where),
       findUnique: async ({ where }: any) => mockData.labs.get(where.id) || null,
+      findFirst: async ({ where }: any) => {
+        const results = filterData(Array.from(mockData.labs.values()), where)
+        return results[0] || null
+      },
       deleteMany: async () => {
         const count = mockData.labs.size
         mockData.labs.clear()
@@ -88,15 +129,11 @@ export async function createPrismaMock(): Promise<PrismaClient> {
         services.forEach((service: any) => mockData.labServices.set(service.id, service))
         return { count: services.length }
       },
-      findMany: async () => Array.from(mockData.labServices.values()),
+      findMany: async ({ where }: any = {}) => filterData(Array.from(mockData.labServices.values()), where),
       findUnique: async ({ where }: any) => mockData.labServices.get(where.id) || null,
       findFirst: async ({ where }: any) => {
-        const values = Array.from(mockData.labServices.values())
-        return values.find((s: any) => {
-          if (where.id) return s.id === where.id
-          if (where.pricingMode) return s.pricingMode === where.pricingMode
-          return false
-        }) || null
+        const results = filterData(Array.from(mockData.labServices.values()), where)
+        return results[0] || null
       },
       deleteMany: async () => {
         const count = mockData.labServices.size
@@ -106,11 +143,46 @@ export async function createPrismaMock(): Promise<PrismaClient> {
     },
     order: {
       create: async ({ data }: any) => {
-        const order = { ...data, id: data.id || `order-${Date.now()}`, createdAt: new Date(), updatedAt: new Date() }
+        const order = { ...data, id: data.id || `order-${Date.now()}`, createdAt: data.createdAt || new Date(), updatedAt: new Date() }
         mockData.orders.set(order.id, order)
         return order
       },
-      findMany: async () => Array.from(mockData.orders.values()),
+      findMany: async ({ where, include, select, orderBy, take }: any = {}) => {
+        let results = filterData(Array.from(mockData.orders.values()), where)
+
+        // Handle orderBy
+        if (orderBy) {
+           results.sort((a, b) => {
+             const key = Object.keys(orderBy)[0]
+             const dir = orderBy[key]
+             if (a[key] < b[key]) return dir === 'asc' ? -1 : 1
+             if (a[key] > b[key]) return dir === 'asc' ? 1 : -1
+             return 0
+           })
+        }
+
+        // Handle take
+        if (take) {
+          results = results.slice(0, take)
+        }
+
+        // Simulating include/select to some extent if needed, but for now just returning the object
+        // NOTE: The mock object might need to have relations manually populated if 'include' is expected
+        // We leave that to the test setup to handle (e.g. putting 'service' object inside 'order')
+
+        // If select is used, strictly we should only return selected fields
+        if (select) {
+           return results.map(item => {
+             const selected: any = {}
+             for (const key in select) {
+               if (select[key]) selected[key] = item[key]
+             }
+             return selected
+           })
+        }
+
+        return results
+      },
       findUnique: async ({ where }: any) => mockData.orders.get(where.id) || null,
       update: async ({ where, data }: any) => {
         const order = mockData.orders.get(where.id)
@@ -130,6 +202,125 @@ export async function createPrismaMock(): Promise<PrismaClient> {
         mockData.orders.clear()
         return { count }
       },
+      count: async ({ where }: any = {}) => {
+        const filtered = filterData(Array.from(mockData.orders.values()), where)
+        return filtered.length
+      },
+      // Implement aggregate for analytics
+      aggregate: async ({ where, _sum, _count, _avg }: any) => {
+        const filtered = filterData(Array.from(mockData.orders.values()), where)
+        const result: any = {}
+
+        if (_count) {
+          result._count = {}
+          if (_count === true || _count._all) {
+             result._count._all = filtered.length
+             // Also map to any requested field if needed, but usually it's just count
+             for (const key in _count) {
+               if (key !== '_all') result._count[key] = filtered.filter(i => i[key] !== null).length
+             }
+          } else {
+             for (const key in _count) {
+                result._count[key] = filtered.filter(i => i[key] !== null).length
+             }
+          }
+        }
+
+        if (_sum) {
+          result._sum = {}
+          for (const key in _sum) {
+            result._sum[key] = filtered.reduce((sum, item) => {
+              const val = item[key] ? Number(item[key]) : 0
+              return sum + val
+            }, 0)
+          }
+        }
+
+        if (_avg) {
+           result._avg = {}
+           for (const key in _avg) {
+             const sum = filtered.reduce((s, item) => s + (item[key] ? Number(item[key]) : 0), 0)
+             result._avg[key] = filtered.length ? sum / filtered.length : 0
+           }
+        }
+
+        return result
+      },
+      // Implement groupBy for analytics
+      groupBy: async ({ by, where, _sum, _count, orderBy, take }: any) => {
+        const filtered = filterData(Array.from(mockData.orders.values()), where)
+        const groups = new Map<string, any>()
+
+        filtered.forEach(item => {
+          // Create a composite key based on 'by' fields
+          const groupKey = by.map(k => item[k]).join(':::')
+
+          if (!groups.has(groupKey)) {
+             const groupObj: any = {}
+             by.forEach(k => groupObj[k] = item[k])
+
+             // Initialize aggregators
+             if (_sum) {
+               groupObj._sum = {}
+               for (const k in _sum) groupObj._sum[k] = 0
+             }
+             if (_count) {
+               groupObj._count = {}
+               for (const k in _count) groupObj._count[k] = 0
+             }
+
+             groups.set(groupKey, groupObj)
+          }
+
+          const group = groups.get(groupKey)
+
+          // Accumulate
+          if (_sum) {
+            for (const k in _sum) {
+              group._sum[k] += item[k] ? Number(item[k]) : 0
+            }
+          }
+          if (_count) {
+            for (const k in _count) {
+              if (k === '_all' || item[k] !== null) { // Simplify count logic
+                  // if k is a field, check null? Prisma counts non-null.
+                  // if k is object? Prisma syntax is _count: { id: true }
+                  group._count[k] += 1
+              }
+            }
+          }
+        })
+
+        let result = Array.from(groups.values())
+
+        // Handle orderBy
+        if (orderBy) {
+           result.sort((a, b) => {
+             // orderBy can be { _sum: { quotedPrice: 'desc' } }
+             const key = Object.keys(orderBy)[0] // e.g. _sum
+             const dir = orderBy[key] // e.g. { quotedPrice: 'desc' } or 'desc' if direct field
+
+             if (typeof dir === 'object') {
+                const subKey = Object.keys(dir)[0] // quotedPrice
+                const subDir = dir[subKey] // 'desc'
+
+                const valA = a[key] ? a[key][subKey] : 0
+                const valB = b[key] ? b[key][subKey] : 0
+
+                return subDir === 'asc' ? valA - valB : valB - valA
+             } else {
+                // Direct field sort (not common in groupBy output unless it's one of 'by' fields)
+                return 0
+             }
+           })
+        }
+
+        if (take) {
+          result = result.slice(0, take)
+        }
+
+        return result
+      }
     },
     attachment: {
       createMany: async ({ data }: any) => {
