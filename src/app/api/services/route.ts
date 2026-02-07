@@ -27,11 +27,13 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')
     const format = searchParams.get('format') // 'legacy' or null
     const labId = searchParams.get('labId')
+    const serviceId = searchParams.get('serviceId')
     const activeFilter = searchParams.get('active') // 'all' to include inactive services
 
     // Build where clause
     const where = {
       ...(activeFilter !== 'all' && { active: true }), // Default: only active services
+      ...(serviceId && { id: serviceId }),
       ...(category && { category }),
       ...(labId && { labId }),
       ...(search && {
