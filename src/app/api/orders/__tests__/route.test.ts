@@ -416,3 +416,78 @@ describe('POST /api/orders', () => {
     })
   })
 })
+
+describe('GET /api/orders', () => {
+  it('should fetch orders with default pagination', async () => {
+    const mockSession = {
+      user: { id: 'client-1', role: 'CLIENT', email: 'client@test.com' }
+    }
+    vi.mocked(getServerSession).mockResolvedValue(mockSession as any)
+    vi.mocked(prisma.order.findMany).mockResolvedValue([])
+
+    const request = new NextRequest('http://localhost:3000/api/orders')
+    await GET(request)
+
+    expect(prisma.order.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 50,
+        skip: 0,
+        where: expect.objectContaining({ clientId: 'client-1' })
+      })
+    )
+  })
+
+  it('should fetch orders with custom pagination', async () => {
+    const mockSession = {
+      user: { id: 'client-1', role: 'CLIENT', email: 'client@test.com' }
+    }
+    vi.mocked(getServerSession).mockResolvedValue(mockSession as any)
+    vi.mocked(prisma.order.findMany).mockResolvedValue([])
+
+    const request = new NextRequest('http://localhost:3000/api/orders?page=2&limit=10')
+    await GET(request)
+
+    expect(prisma.order.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 10,
+        skip: 10,
+        where: expect.objectContaining({ clientId: 'client-1' })
+      })
+    )
+  })
+
+  it('should limit max page size to 100', async () => {
+    const mockSession = {
+      user: { id: 'client-1', role: 'CLIENT', email: 'client@test.com' }
+    }
+    vi.mocked(getServerSession).mockResolvedValue(mockSession as any)
+    vi.mocked(prisma.order.findMany).mockResolvedValue([])
+
+    const request = new NextRequest('http://localhost:3000/api/orders?limit=200')
+    await GET(request)
+
+    expect(prisma.order.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 100
+      })
+    )
+  })
+
+  it('should fallback to default pagination on invalid params', async () => {
+    const mockSession = {
+      user: { id: 'client-1', role: 'CLIENT', email: 'client@test.com' }
+    }
+    vi.mocked(getServerSession).mockResolvedValue(mockSession as any)
+    vi.mocked(prisma.order.findMany).mockResolvedValue([])
+
+    const request = new NextRequest('http://localhost:3000/api/orders?page=invalid&limit=invalid')
+    await GET(request)
+
+    expect(prisma.order.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 50,
+        skip: 0
+      })
+    )
+  })
+})
