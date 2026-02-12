@@ -135,6 +135,12 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status')
 
+    // Pagination parameters
+    // Fallback to defaults if parsing fails (NaN)
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1') || 1)
+    const limit = Math.max(1, Math.min(100, parseInt(searchParams.get('limit') || '50') || 50)) // Max 100 per page
+    const skip = (page - 1) * limit
+
     const whereClause: {
       clientId?: string
       labId?: string
@@ -161,6 +167,8 @@ export async function GET(request: NextRequest) {
 
     const orders = await prisma.order.findMany({
       where: whereClause,
+      take: limit,
+      skip: skip,
       include: {
         service: { select: { name: true, category: true } },
         lab: { select: { name: true } },
@@ -170,7 +178,13 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     })
 
-    return NextResponse.json(orders)
+    // Return array to preserve backward compatibility
+    // Pagination metadata is included in headers
+    const response = NextResponse.json(orders)
+    response.headers.set('X-Page', page.toString())
+    response.headers.set('X-Limit', limit.toString())
+
+    return response
   } catch (error) {
     console.error('Error fetching orders:', error)
     return NextResponse.json(

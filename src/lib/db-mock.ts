@@ -110,7 +110,31 @@ export async function createPrismaMock(): Promise<PrismaClient> {
         mockData.orders.set(order.id, order)
         return order
       },
-      findMany: async () => Array.from(mockData.orders.values()),
+      findMany: async (args: any) => {
+        let values = Array.from(mockData.orders.values())
+
+        // Basic filtering
+        if (args?.where) {
+          if (args.where.clientId) values = values.filter((o: any) => o.clientId === args.where.clientId)
+          if (args.where.labId) values = values.filter((o: any) => o.labId === args.where.labId)
+          if (args.where.status) values = values.filter((o: any) => o.status === args.where.status)
+        }
+
+        // Sorting (mocking 'desc' on createdAt)
+        if (args?.orderBy?.createdAt === 'desc') {
+          values.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        }
+
+        // Pagination
+        if (args?.skip !== undefined) {
+          values = values.slice(args.skip)
+        }
+        if (args?.take !== undefined) {
+          values = values.slice(0, args.take)
+        }
+
+        return values
+      },
       findUnique: async ({ where }: any) => mockData.orders.get(where.id) || null,
       update: async ({ where, data }: any) => {
         const order = mockData.orders.get(where.id)
