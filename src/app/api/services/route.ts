@@ -4,8 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { createServiceSchema } from '@/lib/validations/service'
 import { z } from 'zod'
-
-export const dynamic = 'force-dynamic'
+import { unstable_cache } from 'next/cache'
 
 const DEFAULT_PAGE_SIZE = 12
 const MAX_PAGE_SIZE = 50
@@ -44,28 +43,36 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Execute queries in parallel
-    const [items, totalCount] = await Promise.all([
-      prisma.labService.findMany({
-        where,
-        include: {
-          lab: {
-            select: {
-              id: true,
-              name: true,
-              location: true,
-              certifications: true,
-            }
-          }
-        },
-        orderBy: {
-          createdAt: 'desc'
-        },
-        skip,
-        take: pageSize,
-      }),
-      prisma.labService.count({ where })
-    ])
+    // Execute queries in parallel (cached)
+    const getCachedServices = unstable_cache(
+      async (whereClause, skipVal, takeVal) => {
+        return Promise.all([
+          prisma.labService.findMany({
+            where: whereClause,
+            include: {
+              lab: {
+                select: {
+                  id: true,
+                  name: true,
+                  location: true,
+                  certifications: true,
+                }
+              }
+            },
+            orderBy: {
+              createdAt: 'desc'
+            },
+            skip: skipVal,
+            take: takeVal,
+          }),
+          prisma.labService.count({ where: whereClause })
+        ])
+      },
+      ['services-list'],
+      { revalidate: 60, tags: ['services'] }
+    )
+
+    const [items, totalCount] = await getCachedServices(where, skip, pageSize)
 
     const totalPages = Math.ceil(totalCount / pageSize)
 
