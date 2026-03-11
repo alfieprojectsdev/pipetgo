@@ -1,264 +1,292 @@
-# PipetGo MVP - Lab Services Marketplace
+# PipetGo — B2B Lab Testing Marketplace
 
-A Next.js-based B2B marketplace connecting clients with laboratory testing services. This Stage 1 MVP demonstrates the core user flow: **Client submits test request → Lab acknowledges & uploads results → Admin oversees transactions**.
+PipetGo is a B2B Request-for-Quote (RFQ) platform connecting businesses with ISO 17025 certified laboratory testing services in the Philippines. It is **not an e-commerce platform** — labs provide custom quotes for each engagement rather than fixed catalog prices.
 
-## Tech Stack
+**Core flow:**
+```
+Client submits RFQ → Lab provides quote → Client approves → Testing proceeds → Results delivered
+```
 
-- **Frontend**: Next.js 14 (App Router) + React 18 + Tailwind CSS
-- **Backend**: Next.js API Routes
-- **Database**: PostgreSQL via Neon serverless
-- **ORM**: Prisma
-- **Authentication**: NextAuth.js v4
-- **UI Components**: Custom components with shadcn/ui styling
+## Technology Stack
 
-## Demo User Flow
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 14.2.4 (App Router), React 18.3.1, TypeScript 5.5.2, Tailwind CSS |
+| Backend | Next.js API Routes |
+| Database | PostgreSQL (Neon serverless), Prisma 5.15.0 |
+| Auth | NextAuth 4.24.7, credentials provider with bcrypt |
+| File storage | UploadThing 7.7.4 |
+| Rate limiting | Upstash Redis (optional, disabled without env vars) |
+| Analytics | GoatCounter (privacy-friendly, no cookies) |
+| Testing | Vitest 3.x (unit/integration), Playwright 1.56.1 (E2E) |
 
-1. **Client** browses available lab services on homepage
-2. **Client** submits test request with sample details and shipping info
-3. **Lab Admin** views incoming requests in dashboard
-4. **Lab Admin** acknowledges order → starts testing → uploads results (mock PDF)
-5. **Admin** monitors all platform activity and transactions
-6. **Client** receives completed results notification
+---
 
 ## Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- PostgreSQL database (we'll use Neon serverless)
+- Node.js 18+
+- PostgreSQL database (Neon serverless recommended)
 
-### 1. Clone and Install
+### 1. Clone and install
 
 ```bash
-# Clone the repository
-git clone <your-repo-url>
+git clone <repo-url>
 cd pipetgo-mvp
-
-# Install dependencies
 npm install
 ```
 
-### 2. Database Setup
+### 2. Configure environment
 
-#### Option A: Neon Serverless (Recommended)
+Create `.env.local` with the following variables:
 
-1. Sign up at [neon.tech](https://neon.tech)
-2. Create a new project and database
-3. Copy your connection string
-
-#### Option B: Local PostgreSQL
-
-1. Install PostgreSQL locally
-2. Create database: `createdb pipetgo`
-3. Use connection string: `postgresql://user:password@localhost:5432/pipetgo`
-
-### 3. Environment Configuration
-
-```bash
-# Copy environment template
-cp .env.example .env.local
-
-# Edit .env.local with your values
-DATABASE_URL="your-neon-connection-string-here"
+```env
+# Required
+DATABASE_URL="postgresql://..."
 NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-generated-secret-here"
+NEXTAUTH_SECRET=""           # openssl rand -base64 32
+
+# File uploads (required for attachment functionality)
+UPLOADTHING_SECRET="sk_live_..."
+UPLOADTHING_APP_ID="..."
+
+# Rate limiting (optional — disabled when absent)
+UPSTASH_REDIS_REST_URL="https://..."
+UPSTASH_REDIS_REST_TOKEN="..."
+
+# Analytics (optional — disabled when absent)
+NEXT_PUBLIC_GOATCOUNTER_URL="https://pipetgo.goatcounter.com/count"
 ```
 
-To generate a secure NextAuth secret:
+### 3. Set up the database
+
 ```bash
-openssl rand -base64 32
+npm run db:push    # Apply schema to database
+npm run db:seed    # Load demo data and accounts
 ```
 
-### 4. Database Setup
-
-```bash
-# Push schema to database
-npm run db:push
-
-# Seed with demo data
-npm run db:seed
-```
-
-### 5. Run Development Server
+### 4. Start the development server
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000).
+
+---
 
 ## Demo Accounts
 
-The seed script creates three demo accounts for testing:
+The seed script creates the following accounts. Only the lab admin account has a password set — the others require configuration outside the seed.
 
-| Role | Email | Purpose |
-|------|-------|---------|
-| **Client** | `client@example.com` | Submit test requests, view results |
-| **Lab Admin** | `lab@testinglab.com` | Manage orders, upload results |
-| **Platform Admin** | `admin@pipetgo.com` | Monitor all activities |
+| Role | Email | Password | Notes |
+|---|---|---|---|
+| Lab Admin | `lab@testinglab.com` | `TestPassword123!` | Metro Manila Testing Laboratory |
+| Client | `client@example.com` | — | Requires password setup via `/api/auth/set-password` |
+| Platform Admin | `admin@pipetgo.com` | — | Requires password setup |
+| Lab Admin | `lab2@pgtestlab.com` | — | Testing Lab 2 (Pasig City) |
+| Lab Admin | `lab3@pgtstlab.com` | — | Testing Lab 3 (Quezon City) |
+| Lab Admin | `lab4@testlabpg.com` | — | Testing Lab 4 (Makati City) |
 
-**Note**: For MVP simplicity, authentication uses email only (no password validation).
+The seeded lab (Metro Manila Testing Laboratory) includes 23 services spanning food safety, environmental testing, microscopy, thermal analysis, mechanical testing, biological testing, and more. Additional labs each have 8 services.
 
-## User Journey Testing
+---
 
-### 1. Test Client Flow
-1. Go to homepage (not signed in)
-2. Browse available lab services
-3. Click "Request Test" → redirected to sign in
-4. Use `client@example.com` to sign in
-5. Fill out test request form
-6. Submit and view in client dashboard
+## RFQ Workflow
 
-### 2. Test Lab Admin Flow
-1. Sign in as `lab@testinglab.com`
-2. View incoming orders in lab dashboard
-3. Click "Acknowledge Order" → "Start Testing" → "Upload Results"
-4. See order progress through status pipeline
+### Pricing modes
 
-### 3. Test Admin Overview
-1. Sign in as `admin@pipetgo.com`
-2. View platform overview with all orders
-3. Monitor revenue, categories, and activity
+Services operate in one of three modes:
+
+| Mode | Behavior |
+|---|---|
+| `QUOTE_REQUIRED` | Always requires a custom quote from the lab (default) |
+| `FIXED` | Instant booking at a fixed price, skips quote workflow |
+| `HYBRID` | Client chooses: accept reference price or request a custom quote |
+
+### Order status machine
+
+```
+QUOTE_REQUESTED → QUOTE_PROVIDED → PENDING → ACKNOWLEDGED → IN_PROGRESS → COMPLETED
+                       ↓
+                 QUOTE_REJECTED
+```
+
+- `QUOTE_REQUESTED` — Client submitted RFQ, awaiting lab quote
+- `QUOTE_PROVIDED` — Lab provided price, awaiting client approval
+- `QUOTE_REJECTED` — Client rejected the quote
+- `PENDING` — Quote approved (or fixed-rate order), awaiting lab acknowledgment
+- `ACKNOWLEDGED` — Lab acknowledged the order
+- `IN_PROGRESS` — Testing underway
+- `COMPLETED` — Results delivered
+
+---
 
 ## Project Structure
 
 ```
 src/
-├── app/                    # Next.js App Router
-│   ├── api/               # API routes
-│   ├── auth/              # Authentication pages
-│   ├── dashboard/         # Role-based dashboards
-│   └── order/            # Order submission
+├── app/
+│   ├── api/              # API routes (co-located with __tests__)
+│   ├── auth/             # Sign in/out pages
+│   ├── dashboard/
+│   │   ├── client/       # Client: RFQ submission and tracking
+│   │   ├── lab/          # Lab Admin: quote provision, analytics
+│   │   └── admin/        # Platform Admin: oversight
+│   └── order/            # Order submission flow
 ├── components/
-│   ├── ui/               # Base UI components
-│   └── auth-provider.tsx # Session provider
+│   ├── ui/               # shadcn/ui base components
+│   └── analytics/        # GoatCounter tracking
 ├── lib/
 │   ├── auth.ts           # NextAuth configuration
-│   ├── db.ts             # Prisma client
-│   └── utils.ts          # Utility functions
+│   ├── db.ts             # Prisma singleton
+│   ├── rate-limit.ts     # Upstash Redis rate limiting
+│   ├── utils.ts          # Utility functions
+│   └── validations/      # Zod schemas
 └── types/                # TypeScript definitions
 
 prisma/
-├── schema.prisma         # Database schema
-└── seed.ts              # Demo data
+├── schema.prisma         # Database schema (authoritative)
+└── seed.ts               # Demo data
+
+tests/
+├── lib/                  # Unit tests for utilities and validations
+└── e2e/                  # Playwright end-to-end tests
 ```
+
+---
 
 ## API Endpoints
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/services` | GET | Fetch lab services with filtering |
-| `/api/orders` | GET, POST | Order management |
-| `/api/orders/[id]` | PATCH | Update order status |
-| `/api/auth/[...nextauth]` | * | Authentication |
+### Orders
 
-## Database Schema
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/orders` | Any role | List orders filtered by role |
+| `POST` | `/api/orders` | CLIENT | Submit new RFQ |
+| `GET` | `/api/orders/[id]` | Owner | Get order detail |
+| `PATCH` | `/api/orders/[id]` | LAB_ADMIN | Update order status |
+| `POST` | `/api/orders/[id]/quote` | LAB_ADMIN | Provide quote |
+| `POST` | `/api/orders/[id]/approve-quote` | CLIENT | Approve or reject quote |
+| `POST` | `/api/orders/[id]/request-custom-quote` | CLIENT | Request custom quote (HYBRID mode) |
 
-Key entities:
-- **Users** (clients, lab admins, platform admin)
-- **Labs** (laboratory profiles)
-- **LabServices** (test offerings)
-- **Orders** (client requests)
-- **Attachments** (file uploads, results)
+### Services
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/services` | Public | List services (paginated, filterable) |
+| `GET` | `/api/services/[id]` | LAB_ADMIN | Get single service detail |
+| `POST` | `/api/services` | LAB_ADMIN | Create service |
+| `POST` | `/api/services/bulk` | ADMIN | Bulk operations |
+
+### Other
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/analytics` | LAB_ADMIN | Lab revenue and quote metrics |
+| `*` | `/api/auth/[...nextauth]` | — | NextAuth endpoints |
+| `POST` | `/api/auth/set-password` | Authenticated | Set or change password |
+
+The analytics endpoint accepts a `timeframe` query parameter: `last30days` (default), `last90days`, `thisYear`, or `allTime`.
+
+---
+
+## Testing
+
+### Unit and integration tests (Vitest)
+
+Tests support two database modes:
+
+```bash
+npm run test:run           # Run once (uses mock DB by default)
+npm run test:run:mock      # Explicit mock DB (pg-mem, fast, isolated)
+npm run test:run:live      # Live PostgreSQL (integration testing)
+npm run test               # Watch mode
+npm run test:ui            # Interactive Vitest UI
+npm run test:coverage      # Coverage report
+```
+
+Test files are co-located with API routes under `src/app/api/*/__tests__/` and in `tests/lib/`.
+
+### End-to-end tests (Playwright)
+
+E2E tests run against Chromium by default. Start the dev server before running.
+
+```bash
+npm run test:e2e           # Run all E2E tests
+npm run test:e2e:ui        # Interactive Playwright UI
+npm run test:e2e:headed    # Run with browser visible
+npm run test:e2e:debug     # Debug mode
+npm run test:e2e:report    # View last run report
+```
+
+E2E tests live in `tests/e2e/`. The base URL defaults to `http://localhost:3000` and can be overridden with `PLAYWRIGHT_TEST_BASE_URL`.
+
+### Production login verification
+
+```bash
+npm run test:production:logins   # Smoke-test credentials against a live deployment
+```
+
+---
 
 ## Available Scripts
 
 ```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run start        # Start production server
-npm run db:push      # Push schema changes
-npm run db:seed      # Seed demo data
-npm run db:studio    # Open Prisma Studio
-npm run db:reset     # Reset database and reseed
-npm run lint         # Run ESLint
+# Development
+npm run dev                  # Start dev server (localhost:3000)
+npm run build                # Production build
+npm start                    # Start production server
+npm run lint                 # ESLint
+npm run type-check           # TypeScript validation
+
+# Testing
+npm run test                 # Vitest watch mode
+npm run test:run             # Vitest single run
+npm run test:mock            # Watch mode, mock DB
+npm run test:live            # Watch mode, live DB
+npm run test:run:mock        # Single run, mock DB
+npm run test:run:live        # Single run, live DB
+npm run test:ui              # Vitest interactive UI
+npm run test:coverage        # Coverage report
+npm run test:e2e             # Playwright E2E
+npm run test:e2e:ui          # Playwright interactive UI
+npm run test:e2e:headed      # Playwright with visible browser
+npm run test:e2e:debug       # Playwright debug mode
+npm run test:e2e:report      # View Playwright HTML report
+npm run test:production:logins  # Verify production credentials
+
+# Database
+npm run db:push              # Push schema (development)
+npm run db:migrate           # Generate migration file (production)
+npm run db:seed              # Seed demo data
+npm run db:studio            # Open Prisma Studio GUI
+npm run db:reset             # ⚠️ DESTRUCTIVE — reset and reseed
+
+# Utilities
+npm run screenshots:portfolio  # Capture UI screenshots
 ```
 
-## Stage 1 MVP Features ✅
+---
 
-- **User Authentication**: Role-based access (Client, Lab Admin, Platform Admin)
-- **Service Catalog**: Browse and search lab testing services
-- **Order Management**: Complete request → acknowledgment → completion flow
-- **File Upload Simulation**: Mock result file attachments
-- **Responsive Design**: Mobile-friendly interface
-- **Admin Dashboard**: Platform oversight and monitoring
-- **Status Tracking**: Real-time order status updates
-
-## Stage 1 Limitations (By Design)
-
-- **No Real Payments**: Orders track pricing but no actual payment processing
-- **Mock File Upload**: Result files are simulated URLs (no real storage)
-- **Simple Authentication**: Email-only login for demo purposes
-- **No Real-time Updates**: Status changes require page refresh
-- **No Email Notifications**: Status updates shown in dashboard only
-
-## Development Notes
-
-### Database Migrations
-
-When you modify `prisma/schema.prisma`:
-
-```bash
-# Generate and apply migration
-npm run db:migrate
-
-# Or for development, push directly
-npm run db:push
-```
-
-### Adding New Features
-
-The codebase is structured for Stage 2 expansion:
-
-- **Authentication**: Can easily swap NextAuth for production providers
-- **File Storage**: Ready for S3/Supabase storage integration
-- **Payments**: Order model includes pricing fields for Stripe integration
-- **Real-time**: API routes ready for WebSocket/SSE addition
-
-### Debugging
-
-- View database: `npm run db:studio`
-- Check API routes: Browser dev tools Network tab
-- Server logs: Check terminal running `npm run dev`
-
-## Deployment
-
-### Vercel (Recommended)
+## Deployment (Vercel)
 
 1. Push code to GitHub
 2. Connect repository to Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy automatically on push
+3. Add all required environment variables in the Vercel dashboard
+4. Run `npm run db:migrate` against the production database before deploying
+5. Verify file uploads (UploadThing) and auth are working after deploy
 
-### Manual Deployment
+---
 
-```bash
-npm run build
-npm start
-```
+## Current Limitations
 
-## Senior Engineering Signals Demonstrated
+- **No real-time updates** — Status changes require a page refresh
+- **No email notifications** — SendGrid is installed but not yet integrated
+- **No payment processing** — Orders track pricing but no payment flow exists
 
-1. **Architecture**: Clean separation between API, UI, and data layers
-2. **Type Safety**: Full TypeScript with Prisma-generated types
-3. **Database Design**: Properly normalized schema with audit considerations
-4. **Authentication**: Production-ready auth patterns with NextAuth
-5. **API Design**: RESTful endpoints with proper error handling
-6. **State Management**: React patterns without unnecessary complexity
-7. **Code Organization**: Logical file structure and component hierarchy
-
-## Next Steps (Stage 2)
-
-- Add real file upload with S3/Supabase Storage
-- Implement email notifications
-- Add payment processing with Stripe
-- Real-time updates with WebSockets
-- Enhanced error handling and logging
-- Unit and integration tests
-
-## Support
-
-This MVP demonstrates core marketplace functionality for portfolio/demo purposes. The architecture supports production scaling but would require additional security, monitoring, and infrastructure considerations for live deployment.
+---
 
 ## License
 
