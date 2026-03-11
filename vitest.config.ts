@@ -47,8 +47,8 @@ export default defineConfig({
     // Test file patterns
     include: ['**/*.{test,spec}.{js,ts,jsx,tsx}'],
 
-    // Watch mode excludes
-    exclude: ['node_modules', 'dist', '.next', 'coverage']
+    // Watch mode excludes (tests/e2e uses Playwright, not Vitest)
+    exclude: ['node_modules', 'dist', '.next', 'coverage', 'tests/e2e']
   },
 
   // Path aliases (match tsconfig.json)

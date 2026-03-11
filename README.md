@@ -280,11 +280,46 @@ npm run screenshots:portfolio  # Capture UI screenshots
 
 ---
 
+## Payment Integration Readiness
+
+Payment processing is not yet implemented, but the codebase has the foundational hooks in place for integration.
+
+### What already exists
+
+| Component | Status | Detail |
+|---|---|---|
+| Payment amount field | ✅ Ready | `Order.quotedPrice` (`Decimal?`) stores the agreed price from the RFQ workflow — this becomes the charge amount |
+| Order status machine | ✅ Extensible | A `PAYMENT_PENDING` or `PAID` state can be inserted between `PENDING` and `ACKNOWLEDGED` with minimal schema change |
+| Webhook directory | ⚠️ Empty | `src/app/api/webhooks/` exists but has no route handlers — payment provider webhook receivers go here |
+| Environment config | ✅ Pattern established | `UPLOADTHING_*` shows the existing pattern for adding third-party service keys (e.g. `PAYMONGO_SECRET_KEY`) |
+
+### Recommended payment partners (Philippines B2B)
+
+| Provider | Best for | Notes |
+|---|---|---|
+| **PayMongo** | Philippines-native, GCash + Maya + cards | REST API, webhook-first, sandbox available |
+| **Xendit** | Enterprise B2B invoicing | Supports bank transfer, e-wallets, invoices with payment links |
+| **Stripe** | International clients | Higher FX fees for PHP, but best developer experience |
+
+### What is needed to go live
+
+1. Add `PAYMENT_PENDING` status to the `OrderStatus` enum in `prisma/schema.prisma`
+2. Create `POST /api/orders/[id]/initiate-payment` — calls payment provider, stores provider's payment ID on the order
+3. Create `POST /api/webhooks/payment` — receives provider confirmation, transitions order to `PAID` → `ACKNOWLEDGED`
+4. Add `paymentIntentId` and `paidAt` fields to the `Order` model
+5. Add provider secret key to environment variables
+
+Payment would slot in at the `PENDING` stage: after the client approves a quote, before the lab begins work.
+
+See `docs/Business_Model_Strategy_report_20251015.md` for payment timing strategy (upfront vs. milestone vs. post-delivery).
+
+---
+
 ## Current Limitations
 
 - **No real-time updates** — Status changes require a page refresh
 - **No email notifications** — SendGrid is installed but not yet integrated
-- **No payment processing** — Orders track pricing but no payment flow exists
+- **No payment processing** — `quotedPrice` is stored but no payment provider is integrated yet
 
 ---
 
