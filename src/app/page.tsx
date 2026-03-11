@@ -1,3 +1,10 @@
+/**
+ * PipetGo - B2B Lab Testing Marketplace
+ * Copyright (c) 2025 PIPETGO, Inc. All rights reserved.
+ * 
+ * This file and its contents are the proprietary intellectual property of PIPETGO, Inc.
+ * Unauthorized use, reproduction, or distribution is strictly prohibited.
+ */
 'use client'
 
 import { useSession } from 'next-auth/react'
@@ -419,7 +426,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p>&copy; 2024 PipetGo!. Lab Services Marketplace MVP.</p>
+          <p>&copy; 2025 PipetGo! Lab Services Marketplace MVP.</p>
         </div>
       </footer>
     </div>

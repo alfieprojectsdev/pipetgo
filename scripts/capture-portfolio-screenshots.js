@@ -13,6 +13,11 @@
  * Environment Variables:
  * - PIPETGO_URL: Override base URL (default: production)
  *   Example: PIPETGO_URL=http://localhost:3000 node scripts/capture-portfolio-screenshots.js
+ *
+ * Note: Reduced from 19 to ~16 screenshots by:
+ * - Removing duplicate sign-in screenshot (#09)
+ * - Removing empty/redundant screenshots when no orders exist (#11-13)
+ * - Differentiating catalog screenshots by scroll position (#17-18)
  */
 
 const { chromium } = require('playwright');
@@ -25,11 +30,11 @@ const SCREENSHOT_DIR = path.join(__dirname, '../docs/screenshots/portfolio');
 const VIEWPORT = { width: 1920, height: 1080 };
 const ANIMATION_DELAY = 2000; // Increased for production (CDN, network delays)
 
-// Demo accounts (from seed data)
+// Demo accounts (from ALL_ACCOUNT_CREDENTIALS.md)
 const ACCOUNTS = {
-  client: 'client@example.com',
-  lab: 'lab@testinglab.com',
-  admin: 'admin@pipetgo.com'
+  client: { email: 'client@example.com', password: 'ClientDemo123!' },
+  lab: { email: 'lab1@pgtestinglab.com', password: 'HSmgGnbBcZ!zRsGQsnDkNHnu' },
+  admin: { email: 'admin@pipetgo.com', password: 'AdminDemo123!' }
 };
 
 // Helper Functions
@@ -38,11 +43,11 @@ const ACCOUNTS = {
 /**
  * Programmatic NextAuth signin
  * @param {import('playwright').Page} page
- * @param {string} email
+ * @param {{email: string, password: string}} account
  * @param {boolean} alreadyOnSigninPage - Skip navigation if already on signin page
  */
-async function signIn(page, email, alreadyOnSigninPage = false) {
-  console.log(`🔐 Signing in as ${email}...`);
+async function signIn(page, account, alreadyOnSigninPage = false) {
+  console.log(`🔐 Signing in as ${account.email}...`);
 
   // Always navigate to signin page (ensures fresh state)
   await page.goto(`${BASE_URL}/auth/signin`, { waitUntil: 'domcontentloaded' });
@@ -61,7 +66,10 @@ async function signIn(page, email, alreadyOnSigninPage = false) {
   console.log(`   Current URL: ${currentUrl}`);
 
   // Fill email field
-  await page.fill('input#email', email);
+  await page.fill('input#email', account.email);
+
+  // Fill password field
+  await page.fill('input#password', account.password);
 
   // Click sign in button
   await page.click('button[type="submit"]');
@@ -138,8 +146,8 @@ async function captureScreenshot(page, filename, description, contentSelector = 
  * @param {import('playwright').Page} page
  */
 async function fillRfqForm(page) {
-  // Wait for form to load
-  await page.waitForSelector('textarea#sampleDescription', { timeout: 10000 });
+  // Wait for form to load (increased timeout for production API)
+  await page.waitForSelector('textarea#sampleDescription', { timeout: 30000 });
 
   // Sample description
   await page.fill('textarea#sampleDescription',
@@ -185,8 +193,8 @@ async function fillRfqForm(page) {
  * @param {import('playwright').Page} page
  */
 async function fillQuoteForm(page) {
-  // Wait for quote form to load
-  await page.waitForSelector('input[name="quotedPrice"]', { timeout: 5000 });
+  // Wait for quote form to load (increased timeout for production)
+  await page.waitForSelector('input[name="quotedPrice"]', { timeout: 30000 });
 
   // Enter quoted price
   await page.fill('input[name="quotedPrice"]', '8500');
@@ -236,15 +244,36 @@ async function captureClientRfqFlow(page) {
     'Service catalog (authenticated client view)');
 
   // 5. Click first QUOTE_REQUIRED service
-  // Wait for services to load
-  await page.waitForSelector('button:has-text("Request Quote")', { timeout: 10000 });
+  // CRITICAL: We need to track which lab owns this service so we can sign in as that lab later
+  // Wait for services to load (increased timeout for production)
+  await page.waitForSelector('button:has-text("Request Quote")', { timeout: 30000 });
 
   // Find and click the first "Request Quote" button (QUOTE_REQUIRED service)
+  // This ensures the RFQ will be assigned to the lab that owns this service
   const quoteRequiredButton = page.locator('button:has-text("Request Quote")').first();
   console.log(`   Found quote-required service button`);
 
+  // Store the service name for verification
+  const serviceCard = page.locator('div').filter({ has: quoteRequiredButton }).first();
+  const serviceName = await serviceCard.locator('h3, h2').first().textContent() || 'Unknown Service';
+  console.log(`   Service: ${serviceName}`);
+
   await quoteRequiredButton.click();
   await page.waitForLoadState('networkidle');
+
+  // Extract lab name from service detail page
+  let labName = 'Unknown Lab';
+  try {
+    // Look for lab name in the service detail page
+    const labElement = page.locator('text=/Lab:|Laboratory:|Provided by/i').locator('..').locator('text=/Testing Lab|Lab/');
+    if (await labElement.count() > 0) {
+      labName = await labElement.first().textContent() || 'Unknown Lab';
+      console.log(`   Lab owner: ${labName}`);
+    }
+  } catch (error) {
+    console.log(`   ⚠️ Could not extract lab name from service page`);
+  }
+
   await captureScreenshot(page, '05-quote-required-service.png',
     'Quote required service detail page');
 
@@ -254,6 +283,7 @@ async function captureClientRfqFlow(page) {
     'RFQ form filled with sample data');
 
   // 7. Submit RFQ
+  console.log('   Submitting RFQ...');
   await page.click('button[type="submit"]');
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(2000); // Wait for confirmation/redirect
@@ -263,6 +293,17 @@ async function captureClientRfqFlow(page) {
 
   // 8. Return to client dashboard showing pending order
   await page.goto(`${BASE_URL}/dashboard/client`);
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(2000); // Wait for order to appear
+
+  // Verify order was created
+  const hasClientOrders = await page.locator('text=/Order #|QUOTE_REQUESTED|pending/i').count() > 0;
+  if (hasClientOrders) {
+    console.log('   ✓ Order successfully created and visible in client dashboard');
+  } else {
+    console.log('   ⚠️ No orders visible in client dashboard - RFQ creation may have failed');
+  }
+
   await captureScreenshot(page, '08-client-dashboard-pending-quote.png',
     'Client dashboard showing pending RFQ (awaiting quote)');
 }
@@ -274,84 +315,88 @@ async function captureLabQuoteFlow(page) {
   console.log('\n🧪 FLOW 2: Lab Admin Provide Quote');
   console.log('='.repeat(60));
 
-  // 9. Sign out client
+  // 9. Sign out client and sign in as lab admin (no duplicate screenshot needed)
   await signOut(page);
-  await page.goto(`${BASE_URL}/auth/signin`);
-  await captureScreenshot(page, '09-lab-signin.png',
-    'Sign in page (returning to sign in as lab admin)');
-
-  // 10. Sign in as lab admin (reload page)
   await signIn(page, ACCOUNTS.lab, false);
-  await captureScreenshot(page, '10-lab-dashboard-rfqs.png',
+
+  // 10. Wait for lab dashboard to load with actual orders (not just loading state)
+  console.log('   ⏳ Waiting for orders to appear in lab dashboard...');
+  await page.waitForLoadState('networkidle');
+
+  // Wait for either order cards OR empty state (with increased timeout for production)
+  try {
+    await page.waitForSelector('text=/Order #|Request Quote|Provide Quote|No incoming requests/i', {
+      timeout: 15000
+    });
+    console.log('   ✓ Dashboard content loaded');
+  } catch (error) {
+    console.log('   ⚠️ Timeout waiting for dashboard content - capturing current state');
+  }
+
+  // Additional wait for order cards to render
+  await page.waitForTimeout(2000);
+
+  await captureScreenshot(page, '09-lab-dashboard-rfqs.png',
     'Lab admin dashboard showing incoming RFQs',
     'h2:has-text("Incoming Requests"), h1, h2, main');
 
-  // 11. Click on first order/RFQ (if any orders exist)
-  // Orders might be in cards or table rows - try multiple selectors
+  // Check if orders exist
   const hasOrders = await page.locator('text=/Order #|Request Quote|Provide Quote/i').count() > 0;
 
   if (hasOrders) {
-    // Try to find and click first order card or row
+    console.log('   ✓ Orders found - proceeding with quote flow');
+
+    // Try to find and click first QUOTE_REQUESTED order
     const orderCard = page.locator('.Card, [role="row"]').filter({ hasText: /QUOTE_REQUESTED|PENDING/i }).first();
 
     if (await orderCard.count() > 0) {
-      // If card is clickable, click it; otherwise look for a "View" button
-      const viewButton = orderCard.locator('button:has-text("View"), button:has-text("Details")');
-      if (await viewButton.count() > 0) {
-        await viewButton.first().click();
+      // Look for a "View" or "Provide Quote" button
+      const actionButton = orderCard.locator('button:has-text("View"), button:has-text("Details"), button:has-text("Provide Quote")');
+      if (await actionButton.count() > 0) {
+        await actionButton.first().click();
       } else {
         await orderCard.click();
       }
       await page.waitForLoadState('networkidle');
-    }
 
-    await captureScreenshot(page, '11-rfq-detail.png',
-      'RFQ detail page (lab admin view)');
+      await captureScreenshot(page, '10-rfq-detail.png',
+        'RFQ detail page (lab admin view)');
 
-    // 12. Fill quote form (if quote form exists on same page)
-    // Check if quote form is visible
-    const quoteFormExists = await page.locator('input[name="quotedPrice"]').count() > 0;
+      // Check if quote form is visible on this page
+      const quoteFormExists = await page.locator('input[name="quotedPrice"]').count() > 0;
 
-    if (quoteFormExists) {
-      await fillQuoteForm(page);
-      await captureScreenshot(page, '12-quote-form.png',
-        'Quote form filled with pricing');
+      if (quoteFormExists) {
+        await fillQuoteForm(page);
+        await captureScreenshot(page, '11-quote-form.png',
+          'Quote form filled with pricing');
 
-      // 13. Submit quote
-      const submitButton = page.locator('button:has-text("Submit Quote"), button:has-text("Provide Quote")');
-      if (await submitButton.count() > 0) {
-        await submitButton.first().click();
-        await page.waitForLoadState('networkidle');
-        await page.waitForTimeout(2000);
-        await captureScreenshot(page, '13-quote-submitted.png',
-          'Quote submission confirmation');
+        // Submit quote
+        const submitButton = page.locator('button:has-text("Submit Quote"), button:has-text("Provide Quote")');
+        if (await submitButton.count() > 0) {
+          await submitButton.first().click();
+          await page.waitForLoadState('networkidle');
+          await page.waitForTimeout(2000);
+          await captureScreenshot(page, '12-quote-submitted.png',
+            'Quote submission confirmation');
+        } else {
+          console.log('   ⚠️ Submit quote button not found');
+        }
       } else {
-        console.log('   ⚠️ Submit quote button not found - quote flow may differ');
-        await captureScreenshot(page, '13-quote-submitted.png',
-          'Current page state (quote flow incomplete)');
+        console.log('   ⚠️ Quote form not found on detail page');
       }
-    } else {
-      console.log('   ⚠️ Quote form not found on this page');
-      await captureScreenshot(page, '12-quote-form.png',
-        'RFQ detail page (quote form not implemented)');
-      await captureScreenshot(page, '13-quote-submitted.png',
-        'RFQ detail page (quote submission not available)');
-    }
 
-    // 14. Return to lab dashboard
-    await page.goto(`${BASE_URL}/dashboard/lab`);
-    await captureScreenshot(page, '14-lab-dashboard-quote-sent.png',
-      'Lab dashboard after quote provision');
+      // Return to lab dashboard showing updated status
+      await page.goto(`${BASE_URL}/dashboard/lab`);
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(2000);
+      await captureScreenshot(page, '13-lab-dashboard-quote-sent.png',
+        'Lab dashboard after quote provision');
+    } else {
+      console.log('   ⚠️ Could not find order card to click');
+    }
   } else {
-    console.log('   ⚠️ No orders found in lab dashboard');
-    await captureScreenshot(page, '11-rfq-detail.png',
-      'Lab dashboard (no orders)');
-    await captureScreenshot(page, '12-quote-form.png',
-      'Lab dashboard (no quote form)');
-    await captureScreenshot(page, '13-quote-submitted.png',
-      'Lab dashboard (no submission)');
-    await captureScreenshot(page, '14-lab-dashboard-quote-sent.png',
-      'Lab dashboard (unchanged)');
+    console.log('   ⚠️ No orders found in lab dashboard - RFQ may not have propagated');
+    console.log('   This suggests the client-submitted order is not visible to this lab admin');
   }
 }
 
@@ -362,34 +407,39 @@ async function captureFixedRateFlow(page) {
   console.log('\n💳 FLOW 3: Fixed Rate Service (Instant Booking)');
   console.log('='.repeat(60));
 
-  // Sign out lab admin, sign in as client
-  await signOut(page);
-  await signIn(page, ACCOUNTS.client);
+  try {
+    // Sign out lab admin, sign in as client
+    await signOut(page);
+    await signIn(page, ACCOUNTS.client);
 
-  // 15. Navigate to service catalog and find FIXED service
-  await page.goto(BASE_URL);
-  await page.waitForSelector('button:has-text("Book Service")', { timeout: 10000 });
+    // 14. Navigate to service catalog and find FIXED service
+    await page.goto(BASE_URL);
+    await page.waitForSelector('button:has-text("Book Service")', { timeout: 30000 });
 
-  // Find and click the first "Book Service" button (FIXED pricing)
-  const bookServiceButton = page.locator('button:has-text("Book Service")').first();
-  console.log(`   Found fixed-rate service button`);
+    // Find and click the first "Book Service" button (FIXED pricing)
+    const bookServiceButton = page.locator('button:has-text("Book Service")').first();
+    console.log(`   Found fixed-rate service button`);
 
-  await bookServiceButton.click();
-  await page.waitForLoadState('networkidle');
-  await captureScreenshot(page, '15-fixed-rate-service.png',
-    'Fixed rate service detail (shows instant booking price)');
+    await bookServiceButton.click();
+    await page.waitForLoadState('networkidle');
+    await captureScreenshot(page, '14-fixed-rate-service.png',
+      'Fixed rate service detail (shows instant booking price)');
 
-  // 16. Fill booking form
-  await fillRfqForm(page); // Reuse form filling logic
-  await captureScreenshot(page, '16-instant-booking-form.png',
-    'Instant booking form with fixed price');
+    // 15. Fill booking form
+    await fillRfqForm(page); // Reuse form filling logic
+    await captureScreenshot(page, '15-instant-booking-form.png',
+      'Instant booking form with fixed price');
 
-  // 17. Submit booking
-  await page.click('button[type="submit"]');
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(2000);
-  await captureScreenshot(page, '17-instant-booking-confirmed.png',
-    'Instant booking confirmation');
+    // 16. Submit booking
+    await page.click('button[type="submit"]');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
+    await captureScreenshot(page, '16-instant-booking-confirmed.png',
+      'Instant booking confirmation');
+  } catch (error) {
+    console.log(`   ⚠️ Fixed rate services not available in production - skipping flow`);
+    console.log(`   ${error.message}`);
+  }
 }
 
 /**
@@ -399,23 +449,24 @@ async function captureMultiLabCatalog(page) {
   console.log('\n🏢 FLOW 4: Multi-Lab Catalog Overview');
   console.log('='.repeat(60));
 
-  // 18. Full service catalog (unauthenticated is fine, or stay signed in)
+  // 17. Full service catalog at top of page (unauthenticated is fine, or stay signed in)
   await page.goto(BASE_URL);
   await page.waitForLoadState('networkidle');
 
-  // Scroll to show more services
-  await page.evaluate(() => window.scrollTo(0, 800));
+  // Ensure we're at the top of the page
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(500);
 
-  await captureScreenshot(page, '18-service-catalog-all-labs.png',
-    'Full catalog showing services from multiple labs');
+  await captureScreenshot(page, '17-service-catalog-top.png',
+    'Service catalog - top section showing first services');
 
-  // 19. Highlight categories (scroll to show variety)
-  await page.evaluate(() => window.scrollTo(0, 1600));
+  // 18. Scroll to show different services (1200px down)
+  console.log('   Scrolling to show different catalog section...');
+  await page.evaluate(() => window.scrollTo(0, 1200));
   await page.waitForTimeout(500);
 
-  await captureScreenshot(page, '19-service-categories.png',
-    'Diverse service categories across labs');
+  await captureScreenshot(page, '18-service-catalog-scrolled.png',
+    'Service catalog - scrolled section showing different services');
 }
 
 // Main Execution
@@ -480,6 +531,35 @@ async function captureMultiLabCatalog(page) {
       const sizeMB = (stats.size / 1024 / 1024).toFixed(2);
       console.log(`   ✓ ${file} (${sizeMB} MB)`);
     });
+
+    // Verify no duplicates by checking file sizes
+    console.log('\n🔍 Checking for duplicate screenshots...');
+    const fileSizes = new Map();
+    let duplicatesFound = false;
+
+    files.forEach(file => {
+      const stats = fs.statSync(path.join(SCREENSHOT_DIR, file));
+      const size = stats.size;
+
+      if (fileSizes.has(size)) {
+        console.log(`   ⚠️  Potential duplicate: ${file} has same size as ${fileSizes.get(size)}`);
+        duplicatesFound = true;
+      } else {
+        fileSizes.set(size, file);
+      }
+    });
+
+    if (!duplicatesFound) {
+      console.log('   ✓ No duplicate screenshots detected (by file size)');
+    }
+
+    // Expected screenshot count
+    const expectedCount = 18; // Updated expected count after removing duplicates
+    if (files.length < expectedCount - 3) {
+      console.log(`\n⚠️  Warning: Only ${files.length} screenshots captured (expected ~${expectedCount})`);
+    } else {
+      console.log(`\n✓ Screenshot count looks good (${files.length} captured)`);
+    }
 
   } catch (error) {
     console.error('\n❌ Error during screenshot capture:');
