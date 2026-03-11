@@ -49,5 +49,18 @@ snapshot_claude_*.txt
 tsconfig.tsbuildinfo
 
 # misc
-docs/terminal_snapshot.txttmp/
+docs/terminal_snapshot.txt
+tmp/
+
+# Credentials — NEVER commit these
 scripts/LAB_ACCOUNT_CREDENTIALS.md
+scripts/ALL_ACCOUNT_CREDENTIALS.*
+docs/productionaccounts.csv
+scripts/*.sql
+scripts/DEMO_PASSWORD_IMPLEMENTATION_SUMMARY.txt
+
+# Accidentally copied external repo directory
+homebase/
+
+# Session/workspace noise
+*-this-session-is-being-continued-from-a-previous-co.txt
